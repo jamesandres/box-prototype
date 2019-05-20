@@ -54,8 +54,10 @@ class Main extends React.Component {
 
     textChange(e) {
         // TODO: ugh. probably render this in the shadow DOM and remove this particular node?
-        let textContent = e.target.value.split('<span contenteditable=')[0];
+        let textContent = e.target.value.split(' <span contenteditable=')[0];
+        console.log("pre striptags: ", textContent);
         textContent = striptags(textContent);
+        console.log("post striptags: ", textContent);
  
         const { startOffset, endOffset } = this.getCurrentRange();
         console.log("textChange - startOffset: ", startOffset);
@@ -77,6 +79,10 @@ class Main extends React.Component {
 
     acceptOption(e) {
         const acceptedPostfix = this.props.postfix;
+        if (!acceptedPostfix) {
+            return;
+        }
+        
         const postfixLength = acceptedPostfix.length;
 
         const text = `${this.props.text} ${acceptedPostfix}`;
@@ -96,8 +102,11 @@ class Main extends React.Component {
                     onChange={ (e) => this.textChange(e) }
                     onSelect={ (e) => this.selectionChange(e) }
                     onKeyDown={ (e) => {
-                        if (e.keyCode === 13 && this.props.postfix) {
+                        if (e.keyCode !== 13) {
+                            return;
+                        } else {
                             this.acceptOption(e);
+                            e.preventDefault();
                         }
                     }}
                     html={html}
