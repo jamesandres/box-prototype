@@ -9,6 +9,8 @@ class Main extends React.Component {
 
     componentDidUpdate(prevProps) {
         console.log("componentDidUpdate");
+
+        // TODO: update range
     }
 
     getCurrentRange() {
@@ -34,7 +36,8 @@ class Main extends React.Component {
     
     render() {
         console.log(`rerendering - this.props.text: ${this.props.text}`);
-        const html = `<span>${this.props.text || ''}</span> <span contenteditable={false}>${this.props.postfix || ''}</span>`;
+        //const html = `<span>${this.props.text || ''}</span> <span>${this.props.postfix || ''}</span>`;
+        const html = `<span>${this.props.text}</span>`;
         return (
             <div>
                 <ContentEditable
