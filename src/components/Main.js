@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import ContentEditable from 'react-contenteditable';
+import striptags from 'striptags';
 
 class Main extends React.Component {
     constructor() {
@@ -11,21 +12,50 @@ class Main extends React.Component {
     }
 
     componentDidUpdate(prevProps) {
-        console.log("componentDidUpdate");
+        let selection = window.getSelection();
+        if (selection) {
+            if (this.state.box.firstChild) {
+                //range.selectNodeContents(this.box);
+                let currentStartOffset, currentEndOffset;
+                const currentRange = this.getCurrentRange();
+                if (currentRange) {
+                    currentStartOffset = currentRange.startOffset;
+                    currentEndOffset = currentRange.endOffset;
+                }
 
-        // TODO: update range
+                console.log("this.state.box.firstChild: ", this.state.box.firstChild);
+                // only attempt to change offset if we're not already there
+                if (!currentRange || this.props.startOffset !== currentStartOffset || this.props.endOffset !== currentEndOffset) {
+                    selection.removeAllRanges();
+                    console.log("firstChild: ", this.state.box.firstChild);
+
+                    const range = document.createRange();
+                    range.setStart(this.state.box.firstChild, this.props.startOffset);
+                    range.setEnd(this.state.box.firstChild, this.props.endOffset);
+                    selection.addRange(range);
+                }
+            }
+        } else {
+            console.log("no selection");
+        }
     }
 
     getCurrentRange() {
         if (window.getSelection()) {
-            return window.getSelection().getRangeAt(0);
+            try {
+                return window.getSelection().getRangeAt(0);
+            } catch (IndexSizeError) {
+                return;
+            }
         }
     }
 
     textChange(e) {
-        console.log(`text changed to ${e.target.value}`);
+        const textContent = striptags(e.target.value);
+ 
+        console.log(`text changed to ${textContent}`);
         const { startOffset, endOffset } = this.getCurrentRange();
-        this.props.updateText(e.target.value, startOffset, endOffset);
+        this.props.updateText(textContent, startOffset, endOffset);
     }
 
     selectionChange(e) {
@@ -34,9 +64,11 @@ class Main extends React.Component {
     }
 
     saveBox(node) {
-        this.setState({
-            box: node
-        });
+        if (!this.state.box) {
+            this.setState({
+                box: node
+            });
+        }
     }
     
     render() {
@@ -49,7 +81,7 @@ class Main extends React.Component {
                     onChange={(e) => this.textChange(e) }
                     onSelect={(e) => this.selectionChange(e) }
                     html={html}
-                    innerRef={this.saveBox}
+                    innerRef={(ref) => this.saveBox(ref) }
                 />
             </div>
         );
