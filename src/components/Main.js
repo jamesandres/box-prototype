@@ -24,6 +24,7 @@ class Main extends React.Component {
                 currentStartOffset = currentRange.startOffset;
                 currentEndOffset = currentRange.endOffset;
 
+                console.log("componentDidUpdate. props startOffset: ", this.props.startOffset);
                 if (this.props.startOffset !== currentStartOffset || this.props.endOffset !== currentEndOffset) {
                     const range = document.createRange();
                     // oh no. box.firstChild.firstChild doesn't exist on initial load but we do need to set the carat to the beginning of the
@@ -41,6 +42,7 @@ class Main extends React.Component {
     }
 
     getCurrentRange() {
+        // this returns 0,0 when the user has just accepted a suggestion. 
         if (window.getSelection()) {
             try {
                 return window.getSelection().getRangeAt(0);
@@ -56,6 +58,7 @@ class Main extends React.Component {
         textContent = striptags(textContent);
  
         const { startOffset, endOffset } = this.getCurrentRange();
+        console.log("textChange - startOffset: ", startOffset);
         this.props.updateText(textContent, startOffset, endOffset);
     }
 
@@ -71,16 +74,34 @@ class Main extends React.Component {
             });
         }
     }
+
+    acceptOption(e) {
+        const acceptedPostfix = this.props.postfix;
+        const postfixLength = acceptedPostfix.length;
+
+        const text = `${this.props.text} ${acceptedPostfix}`;
+        let { startOffset, endOffset } = this.getCurrentRange();
+        
+        startOffset = startOffset + postfixLength;
+        endOffset = endOffset + postfixLength;
+
+        this.props.updateText(text, startOffset, endOffset);
+    }
     
     render() {
         const html = `<span>${this.props.text || ''}</span> <span contenteditable="false">${this.props.postfix || ''}</span>`;
         return (
             <div>
                 <ContentEditable
-                    onChange={(e) => this.textChange(e) }
-                    onSelect={(e) => this.selectionChange(e) }
+                    onChange={ (e) => this.textChange(e) }
+                    onSelect={ (e) => this.selectionChange(e) }
+                    onKeyDown={ (e) => {
+                        if (e.keyCode === 13 && this.props.postfix) {
+                            this.acceptOption(e);
+                        }
+                    }}
                     html={html}
-                    innerRef={(ref) => this.saveBox(ref) }
+                    innerRef={ (ref) => this.saveBox(ref) }
                 />
             </div>
         );
