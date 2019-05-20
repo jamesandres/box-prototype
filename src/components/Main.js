@@ -15,7 +15,6 @@ class Main extends React.Component {
         let selection = window.getSelection();
         if (selection) {
             if (this.state.box.firstChild) {
-                //range.selectNodeContents(this.box);
                 let currentStartOffset, currentEndOffset;
                 const currentRange = this.getCurrentRange();
                 if (currentRange) {
@@ -26,12 +25,13 @@ class Main extends React.Component {
                 console.log("this.state.box.firstChild: ", this.state.box.firstChild);
                 // only attempt to change offset if we're not already there
                 if (!currentRange || this.props.startOffset !== currentStartOffset || this.props.endOffset !== currentEndOffset) {
-                    selection.removeAllRanges();
-                    console.log("firstChild: ", this.state.box.firstChild);
-
                     const range = document.createRange();
-                    range.setStart(this.state.box.firstChild, this.props.startOffset);
-                    range.setEnd(this.state.box.firstChild, this.props.endOffset);
+                    // TODO: the box.firstChild situation happens on initial load. On initial load we don't care about Range yet, so don't let it try to
+                    // create one?
+                    let nodeToAlter = this.state.box.firstChild.firstChild ? this.state.box.firstChild.firstChild : this.state.box.firstChild;
+                    range.setStart(nodeToAlter, this.props.startOffset);
+                    range.setEnd(nodeToAlter, this.props.endOffset);
+                    selection.removeAllRanges();
                     selection.addRange(range);
                 }
             }
