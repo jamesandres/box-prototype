@@ -5,6 +5,9 @@ import ContentEditable from 'react-contenteditable';
 class Main extends React.Component {
     constructor() {
         super();
+        this.state = {
+            box: null
+        };
     }
 
     componentDidUpdate(prevProps) {
@@ -30,8 +33,10 @@ class Main extends React.Component {
         //this.props.updateText(this.props.text, startOffset, endOffset);
     }
 
-    addSignature() {
-        //this.setState({text: `<span>${this.state.text}</span>  <span contenteditable="false">- HW</span>`});
+    saveBox(node) {
+        this.setState({
+            box: node
+        });
     }
     
     render() {
@@ -44,12 +49,8 @@ class Main extends React.Component {
                     onChange={(e) => this.textChange(e) }
                     onSelect={(e) => this.selectionChange(e) }
                     html={html}
+                    innerRef={this.saveBox}
                 />
-                <div>
-                    <button onClick={(e) => this.addSignature(e) }>
-                        Button
-                    </button>
-                </div>
             </div>
         );
     }
