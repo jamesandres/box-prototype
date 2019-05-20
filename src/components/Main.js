@@ -26,6 +26,8 @@ class Main extends React.Component {
 
                 if (this.props.startOffset !== currentStartOffset || this.props.endOffset !== currentEndOffset) {
                     const range = document.createRange();
+                    // oh no. box.firstChild.firstChild doesn't exist on initial load but we do need to set the carat to the beginning of the
+                    // box anyway.
                     const nodeToAlter = this.state.box.firstChild.firstChild ? this.state.box.firstChild.firstChild : this.state.box.firstChild;
                     range.setStart(nodeToAlter, this.props.startOffset);
                     range.setEnd(nodeToAlter, this.props.endOffset);
