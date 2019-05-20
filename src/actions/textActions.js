@@ -2,7 +2,7 @@ export const updateText = (text, startOffset, endOffset) => (dispatch, getState)
     dispatch(reallyUpdateText(text, startOffset, endOffset));
 
     const possiblePostfixes = ['something', 'yeah', 'it', 'is', 'a', 'very', 'nice', 'day', 'today'];
-    const postfix = possiblePostfixes[Math.floor(Math.random() * postfix.length)];
+    const postfix = possiblePostfixes[Math.floor(Math.random() * possiblePostfixes.length)];
 
     dispatch(updatePostfix(postfix));
 };

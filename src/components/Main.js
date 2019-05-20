@@ -1,45 +1,40 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import ContentEditable from 'react-contenteditable';
 
 class Main extends React.Component {
     constructor() {
         super();
-        this.state = {
-            text: '',
-            startOffset: null,
-            endOffset: null
-        };
     }
 
     componentDidUpdate(prevProps) {
         console.log("componentDidUpdate");
     }
 
+    getCurrentRange() {
+        if (window.getSelection()) {
+            return window.getSelection().getRangeAt(0);
+        }
+    }
+
     textChange(e) {
         console.log(`text changed to ${e.target.value}`);
-        // TODO: something about setState batching calls?
-        this.setState({
-            text: e.target.value
-        });
+        const { startOffset, endOffset } = this.getCurrentRange();
+        this.props.updateText(e.target.value, startOffset, endOffset);
     }
 
     selectionChange(e) {
-        const range = window.getSelection().getRangeAt(0);
-        const { startOffset, endOffset } = range;
-        console.log(`offset change to (${startOffset}, ${endOffset})`);
-
-        this.setState({
-            startOffset,
-            endOffset
-        });
+        const { startOffset, endOffset } = this.getCurrentRange();
+        //this.props.updateText(this.props.text, startOffset, endOffset);
     }
 
     addSignature() {
-        this.setState({text: `<span>${this.state.text}</span>  <span contenteditable="false">- HW</span>`});
+        //this.setState({text: `<span>${this.state.text}</span>  <span contenteditable="false">- HW</span>`});
     }
     
     render() {
-        const html = this.state.text;
+        console.log(`rerendering - this.props.text: ${this.props.text}`);
+        const html = `<span>${this.props.text || ''}</span> <span contenteditable={false}>${this.props.postfix || ''}</span>`;
         return (
             <div>
                 <ContentEditable
@@ -56,5 +51,13 @@ class Main extends React.Component {
         );
     }
 }
+
+Main.propTypes = {
+    text: PropTypes.string.isRequired,
+    postfix: PropTypes.string,
+    startOffset: PropTypes.number,
+    endOffset: PropTypes.number,
+    updateText: PropTypes.func.isRequired
+};
 
 export default Main;

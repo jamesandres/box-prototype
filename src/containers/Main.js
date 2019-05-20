@@ -5,7 +5,9 @@ import Main from '../components/Main';
 
 const mapStateToProps = state => ({
     text: state.writing.text,
-    postfix: state.writing.postfix
+    postfix: state.writing.postfix,
+    startOffset: state.writing.startOffset,
+    endOffset: state.writing.endOffset
 });
 
 const mapDispatchToProps = dispatch => ({
