@@ -19,6 +19,9 @@ const writing = (state = initialState, action) => {
                 postfix: action.postfix
             };
         }
+        default: {
+            return state;
+        }
     }
 }
 
