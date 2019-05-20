@@ -26,7 +26,6 @@ class Main extends React.Component {
 
                 if (this.props.startOffset !== currentStartOffset || this.props.endOffset !== currentEndOffset) {
                     const range = document.createRange();
-                    console.log("this.props.startOffset:", this.props.startOffset);
                     const nodeToAlter = this.state.box.firstChild.firstChild ? this.state.box.firstChild.firstChild : this.state.box.firstChild;
                     range.setStart(nodeToAlter, this.props.startOffset);
                     range.setEnd(nodeToAlter, this.props.endOffset);
@@ -52,10 +51,8 @@ class Main extends React.Component {
     textChange(e) {
         // TODO: ugh. probably render this in the shadow DOM and remove this particular node?
         let textContent = e.target.value.split('<span contenteditable=')[0];
-        console.log("textContent:", textContent);
         textContent = striptags(textContent);
  
-        console.log(`text changed to ${textContent}`);
         const { startOffset, endOffset } = this.getCurrentRange();
         this.props.updateText(textContent, startOffset, endOffset);
     }
@@ -74,9 +71,7 @@ class Main extends React.Component {
     }
     
     render() {
-        console.log(`rerendering - this.props.text: ${this.props.text}`);
         const html = `<span>${this.props.text || ''}</span> <span contenteditable="false">${this.props.postfix || ''}</span>`;
-        //const html = `<span>${this.props.text}</span>`;
         return (
             <div>
                 <ContentEditable
