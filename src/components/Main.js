@@ -17,18 +17,17 @@ class Main extends React.Component {
             if (this.state.box.firstChild) {
                 let currentStartOffset, currentEndOffset;
                 const currentRange = this.getCurrentRange();
-                if (currentRange) {
-                    currentStartOffset = currentRange.startOffset;
-                    currentEndOffset = currentRange.endOffset;
+                if (!currentRange) {
+                    return;
                 }
 
-                console.log("this.state.box.firstChild: ", this.state.box.firstChild);
-                // only attempt to change offset if we're not already there
-                if (!currentRange || this.props.startOffset !== currentStartOffset || this.props.endOffset !== currentEndOffset) {
+                currentStartOffset = currentRange.startOffset;
+                currentEndOffset = currentRange.endOffset;
+
+                if (this.props.startOffset !== currentStartOffset || this.props.endOffset !== currentEndOffset) {
                     const range = document.createRange();
-                    // TODO: the box.firstChild situation happens on initial load. On initial load we don't care about Range yet, so don't let it try to
-                    // create one?
-                    let nodeToAlter = this.state.box.firstChild.firstChild ? this.state.box.firstChild.firstChild : this.state.box.firstChild;
+                    console.log("this.props.startOffset:", this.props.startOffset);
+                    const nodeToAlter = this.state.box.firstChild.firstChild ? this.state.box.firstChild.firstChild : this.state.box.firstChild;
                     range.setStart(nodeToAlter, this.props.startOffset);
                     range.setEnd(nodeToAlter, this.props.endOffset);
                     selection.removeAllRanges();
@@ -51,7 +50,10 @@ class Main extends React.Component {
     }
 
     textChange(e) {
-        const textContent = striptags(e.target.value);
+        // TODO: ugh. probably render this in the shadow DOM and remove this particular node?
+        let textContent = e.target.value.split('<span contenteditable=')[0];
+        console.log("textContent:", textContent);
+        textContent = striptags(textContent);
  
         console.log(`text changed to ${textContent}`);
         const { startOffset, endOffset } = this.getCurrentRange();
@@ -60,7 +62,7 @@ class Main extends React.Component {
 
     selectionChange(e) {
         const { startOffset, endOffset } = this.getCurrentRange();
-        //this.props.updateText(this.props.text, startOffset, endOffset);
+        this.props.updateText(this.props.text, startOffset, endOffset);
     }
 
     saveBox(node) {
@@ -73,8 +75,8 @@ class Main extends React.Component {
     
     render() {
         console.log(`rerendering - this.props.text: ${this.props.text}`);
-        //const html = `<span>${this.props.text || ''}</span> <span>${this.props.postfix || ''}</span>`;
-        const html = `<span>${this.props.text}</span>`;
+        const html = `<span>${this.props.text || ''}</span> <span contenteditable="false">${this.props.postfix || ''}</span>`;
+        //const html = `<span>${this.props.text}</span>`;
         return (
             <div>
                 <ContentEditable
