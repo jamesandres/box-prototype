@@ -95,7 +95,7 @@ class Main extends React.Component {
     }
     
     render() {
-        const html = `<span>${this.props.text || ''}</span> <span contenteditable="false">${this.props.postfix || ''}</span>`;
+        const html = `<span>${this.props.text || ''}</span> <span contenteditable="false" class="postfix">${this.props.postfix || ''}</span>`;
         return (
             <div>
                 <ContentEditable

@@ -31,3 +31,17 @@
     transform: rotate(360deg);
   }
 }
+
+div[contenteditable="true"] {
+  text-align: left;
+  margin: 1em;
+  padding: 0.5em;
+  border: 1px solid #999;
+  border-radius: 0.25em;
+  color: #111;
+}
+
+div[contenteditable="true"] span.postfix {
+  margin-left: 1em;
+  color: #999;
+}
