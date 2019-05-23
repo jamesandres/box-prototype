@@ -42,7 +42,7 @@ class Main extends React.Component {
     }
 
     fetchSuggestionsTimer() {
-        let fetchSuggestionsClosure = (() => () => {
+        const fetchSuggestionsClosure = (() => () => {
             if (this.props.text) {
                 this.props.fetchSuggestions(this.props.text, this.state.token);
             }
@@ -60,6 +60,7 @@ class Main extends React.Component {
     }
 
     getCurrentRange() {
+        this.getCaretCharacterOffsetWithin(); // JUST DEBUGGING
         // this returns 0,0 when the user has just accepted a suggestion.
         if (window.getSelection()) {
             try {
@@ -70,19 +71,49 @@ class Main extends React.Component {
         }
     }
 
+    // DEBUGGING AN IDEA
+    getCaretCharacterOffsetWithin() {
+        const element = this.state.editableNode;
+
+        // See: https://stackoverflow.com/a/4812022/806988
+        var caretOffset = 0;
+        var doc = element.ownerDocument || element.document;
+        var win = doc.defaultView || doc.parentWindow;
+        var sel;
+        if (typeof win.getSelection != "undefined") {
+            sel = win.getSelection();
+            if (sel.rangeCount > 0) {
+                var range = win.getSelection().getRangeAt(0);
+                var preCaretRange = range.cloneRange();
+                preCaretRange.selectNodeContents(element);
+                preCaretRange.setEnd(range.endContainer, range.endOffset);
+                caretOffset = preCaretRange.toString().length;
+            }
+        } else if ( (sel = doc.selection) && sel.type != "Control") {
+            var textRange = sel.createRange();
+            var preCaretTextRange = doc.body.createTextRange();
+            preCaretTextRange.moveToElementText(element);
+            preCaretTextRange.setEndPoint("EndToEnd", textRange);
+            caretOffset = preCaretTextRange.text.length;
+        }
+        console.log('getCaretCharacterOffsetWithin, caretOffset:', caretOffset);
+        return caretOffset;
+    }
+
     textChange(e) {
         // TODO: ugh. probably render this in the shadow DOM and remove this particular node?
         console.log('textChange, e.target.value:', e.target.value);
-        let textContent = e.target.value.split('<span contenteditable=')[0];
-        textContent = striptags(textContent);
-
-        const { startOffset, endOffset } = this.getCurrentRange();
-        this.props.updateText(textContent, startOffset, endOffset);
+        let newText = e.target.value.split('<span contenteditable=')[0];
+        newText = striptags(newText);
+        if (newText !== this.props.text) {
+            this.selectionChange() // Also update state with new cursor position
+            this.props.updateText(newText);
+        }
     }
 
     selectionChange(e) {
         const { startOffset, endOffset } = this.getCurrentRange();
-        this.props.updateText(this.props.text, startOffset, endOffset);
+        this.props.updateSelection(startOffset, endOffset);
     }
 
     saveEditableNode(node) {
@@ -104,13 +135,12 @@ class Main extends React.Component {
         const newText = `${this.props.text}${acceptedPostfix}`;
         let { startOffset, endOffset } = this.getCurrentRange();
 
-        startOffset = startOffset + postfixLength;
-        endOffset = endOffset + postfixLength;
-
-        this.props.updateText(newText, startOffset, endOffset);
+        this.props.updateText(newText);
+        this.props.updateSelection(startOffset + postfixLength, endOffset + postfixLength);
     }
 
     render() {
+        // TODO: Figure out why text was wrapped in a <span>?
         const html = `<span>${this.props.text || ''}</span><span contenteditable="false" class="postfix">${this.props.postfix || ''}</span>`;
         return (
             <div>
@@ -118,11 +148,11 @@ class Main extends React.Component {
                     onChange={ (e) => this.textChange(e) }
                     onSelect={ (e) => this.selectionChange(e) }
                     onKeyDown={ (e) => {
-                        // Arrow keys and ESC should not trigger suggestions
-                        if (![27, 37, 38, 39, 40].includes(e.keyCode)) {
+                        const arrowKeysAndESC = [27, 37, 38, 39, 40];
+                        const tabKeyAndReturn = [9, 13];
+                        if (!arrowKeysAndESC.includes(e.keyCode)) {
                             this.startFetchSuggestionsTimer();
-                            // Tab should accept the suggestion
-                            if (e.keyCode === 9) {
+                            if (tabKeyAndReturn.includes(e.keyCode)) {
                                 this.acceptOption(e);
                                 e.preventDefault();
                             }
@@ -150,6 +180,7 @@ Main.propTypes = {
     startOffset: PropTypes.number,
     endOffset: PropTypes.number,
     updateText: PropTypes.func.isRequired,
+    updateSelection: PropTypes.func.isRequired,
     fetchSuggestions: PropTypes.func.isRequired
 };
 

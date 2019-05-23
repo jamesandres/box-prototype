@@ -51,14 +51,24 @@ export const fetchSuggestions = (text, token) =>
     };
 
 
-const updateTextAction = (text, startOffset, endOffset) => ({
+const updateTextAction = (text) => ({
     type: 'UPDATE_TEXT',
-    text,
+    text
+});
+
+export const updateText = (text) =>
+    (dispatch, getState) => {
+        dispatch(updateTextAction(text));
+    };
+
+
+const updateSelectionAction = (startOffset, endOffset) => ({
+    type: 'UPDATE_SELECTION',
     startOffset,
     endOffset
 });
 
-export const updateText = (text, startOffset, endOffset) =>
+export const updateSelection = (startOffset, endOffset) =>
     (dispatch, getState) => {
-        dispatch(updateTextAction(text, startOffset, endOffset));
+        dispatch(updateSelectionAction(startOffset, endOffset));
     };

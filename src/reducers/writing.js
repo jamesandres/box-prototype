@@ -10,7 +10,12 @@ const writing = (state = initialState, action) => {
         case 'UPDATE_TEXT': {
             return {
                 ...state,
-                text: action.text,
+                text: action.text
+            };
+        }
+        case 'UPDATE_SELECTION': {
+            return {
+                ...state,
                 startOffset: action.startOffset,
                 endOffset: action.endOffset
             };
