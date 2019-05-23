@@ -1,6 +1,7 @@
-import { connect } from 'react-redux'; 
+import { compose } from 'redux';
+import { connect } from 'react-redux';
 
-import { updateText } from '../actions/textActions';
+import { updateText, fetchSuggestions } from '../actions/textActions';
 import Main from '../components/Main';
 
 const mapStateToProps = state => ({
@@ -11,9 +12,8 @@ const mapStateToProps = state => ({
 });
 
 const mapDispatchToProps = dispatch => ({
-    updateText: (text, startOffset, endOffset) => {
-        dispatch(updateText(text, startOffset, endOffset));
-    }
+    updateText: compose(dispatch, updateText),
+    fetchSuggestions: compose(dispatch, fetchSuggestions)
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

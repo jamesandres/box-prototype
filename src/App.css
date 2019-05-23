@@ -45,3 +45,8 @@ div[contenteditable="true"] span.postfix {
   margin-left: 1em;
   color: #999;
 }
+
+input[type="text"] {
+  width: 100%;
+  margin: 1em;
+}
