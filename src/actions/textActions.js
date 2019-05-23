@@ -15,6 +15,11 @@ const fetchSuggestionsError = (error) => ({
     error: error
 });
 
+const abandonSuggestions = (reason) => ({
+    type: 'FETCH_SUGGESTIONS_ABANDON',
+    reason: reason
+});
+
 export const fetchSuggestions = (text, token) =>
     async (dispatch, getState) => {
         const escapedText = encodeURI(text);
@@ -26,8 +31,20 @@ export const fetchSuggestions = (text, token) =>
             })
             .then(response => response.json())
             .then(responseJson => {
-                window.responseJson = responseJson;
-                console.log("fetch response was", responseJson);
-                dispatch(updatePostfix(responseJson.suggestions[0].suggestion))
+                if (!responseJson.suggestions || responseJson.suggestions.length <= 0) {
+                    dispatch(abandonSuggestions("There were suggestions"));
+                    return;
+                }
+                const { suggestion } = responseJson.suggestions[0];
+                const currentText = getState().writing.text;
+
+                if (!suggestion.startsWith(currentText)) {
+                    dispatch(abandonSuggestions(`User changed text since suggestion fetched! was: ${JSON.stringify(text)}; now is: ${JSON.stringify(currentText)}`));
+                    return;
+                }
+
+                const newPostfix = suggestion.slice(text.length);
+
+                dispatch(updatePostfix(newPostfix));
             })
     };
