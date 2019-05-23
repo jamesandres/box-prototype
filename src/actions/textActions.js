@@ -1,21 +1,22 @@
-export const updateText = (text, startOffset, endOffset) => ({
-    type: 'UPDATE_TEXT',
-    text,
-    startOffset,
-    endOffset
-});
-
-const updatePostfix = (suggestion) => ({
+const updatePostfixAction = (suggestion) => ({
     type: 'UPDATE_POSTFIX',
     postfix: suggestion
 });
 
-const fetchSuggestionsError = (error) => ({
+const clearPostfixAction = () => ({
+    type: 'CLEAR_POSTFIX'
+});
+
+export const clearPostfix = () =>
+    (dispatch, getState) => dispatch(clearPostfixAction());
+
+
+const fetchSuggestionsErrorAction = (error) => ({
     type: 'FETCH_SUGGESTIONS_ERROR',
     error: error
 });
 
-const abandonSuggestions = (reason) => ({
+const abandonSuggestionsAction = (reason) => ({
     type: 'FETCH_SUGGESTIONS_ABANDON',
     reason: reason
 });
@@ -26,25 +27,38 @@ export const fetchSuggestions = (text, token) =>
         const escapedToken = encodeURI(token);
         fetch(`http://localhost:8010/suggest?q=${escapedText}&token=${escapedToken}`)
             .catch(e => {
-                dispatch(fetchSuggestionsError(e.toString()));
+                dispatch(fetchSuggestionsErrorAction(e.toString()));
                 console.error(e);
             })
             .then(response => response.json())
             .then(responseJson => {
                 if (!responseJson.suggestions || responseJson.suggestions.length <= 0) {
-                    dispatch(abandonSuggestions("There were suggestions"));
+                    dispatch(abandonSuggestionsAction(`There are no suggestions for ${JSON.stringify(text)}`));
                     return;
                 }
                 const { suggestion } = responseJson.suggestions[0];
                 const currentText = getState().writing.text;
 
                 if (!suggestion.startsWith(currentText)) {
-                    dispatch(abandonSuggestions(`User changed text since suggestion fetched! was: ${JSON.stringify(text)}; now is: ${JSON.stringify(currentText)}`));
+                    dispatch(abandonSuggestionsAction(`User changed text since suggestion fetched! was: ${JSON.stringify(text)}; now is: ${JSON.stringify(currentText)}`));
                     return;
                 }
 
                 const newPostfix = suggestion.slice(text.length);
 
-                dispatch(updatePostfix(newPostfix));
+                dispatch(updatePostfixAction(newPostfix));
             })
+    };
+
+
+const updateTextAction = (text, startOffset, endOffset) => ({
+    type: 'UPDATE_TEXT',
+    text,
+    startOffset,
+    endOffset
+});
+
+export const updateText = (text, startOffset, endOffset) =>
+    (dispatch, getState) => {
+        dispatch(updateTextAction(text, startOffset, endOffset));
     };

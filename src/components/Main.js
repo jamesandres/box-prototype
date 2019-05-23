@@ -137,6 +137,7 @@ class Main extends React.Component {
                             this.acceptOption(e);
                             e.preventDefault();
                         }
+                        this.props.clearPostfix();
                     }}
                     html={html}
                     innerRef={ (ref) => this.saveEditableNode(ref) }

@@ -22,6 +22,12 @@ const writing = (state = initialState, action) => {
                 postfix: action.postfix
             };
         }
+        case 'CLEAR_POSTFIX': {
+            return {
+                ...state,
+                postfix: ""
+            };
+        }
         default: {
             return state;
         }

@@ -1,7 +1,7 @@
 import { compose } from 'redux';
 import { connect } from 'react-redux';
 
-import { updateText, fetchSuggestions } from '../actions/textActions';
+import { updateText, fetchSuggestions, clearPostfix } from '../actions/textActions';
 import Main from '../components/Main';
 
 const mapStateToProps = state => ({
@@ -13,7 +13,8 @@ const mapStateToProps = state => ({
 
 const mapDispatchToProps = dispatch => ({
     updateText: compose(dispatch, updateText),
-    fetchSuggestions: compose(dispatch, fetchSuggestions)
+    fetchSuggestions: compose(dispatch, fetchSuggestions),
+    clearPostfix: compose(dispatch, clearPostfix)
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);
