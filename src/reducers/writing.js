@@ -8,7 +8,6 @@ const initialState = {
 const writing = (state = initialState, action) => {
     switch (action.type) {
         case 'UPDATE_TEXT': {
-            console.log("updating text to " + action.text);
             return {
                 ...state,
                 text: action.text,

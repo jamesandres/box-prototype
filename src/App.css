@@ -42,7 +42,6 @@ div[contenteditable="true"] {
 }
 
 div[contenteditable="true"] span.postfix {
-  margin-left: 1em;
   color: #999;
 }
 

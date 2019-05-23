@@ -6,7 +6,6 @@ import striptags from 'striptags';
 
 class Main extends React.Component {
     constructor() {
-        console.log("constructor");
         super();
         this.state = {
             editableNode: null,
@@ -15,13 +14,7 @@ class Main extends React.Component {
         };
     }
 
-    componentDidMount() {
-        console.log("componentDidMount");
-        this.resetFetchSuggestionsTimer();
-    }
-
     componentDidUpdate(prevProps) {
-        console.log("componentDidUpdate");
         let selection = window.getSelection();
         if (selection) {
             if (this.state.editableNode.firstChild) {
@@ -35,7 +28,6 @@ class Main extends React.Component {
                 currentEndOffset = currentRange.endOffset;
 
                 if (this.props.startOffset !== currentStartOffset || this.props.endOffset !== currentEndOffset) {
-                    console.log("  componentDidUpdate, updating startOffset:", this.props.startOffset, "; endOffset:", this.props.endOffset);
                     const range = document.createRange();
                     // oh no. editableNode.firstChild.firstChild doesn't exist on initial load but we do need to set the carat to the beginning of the
                     // box anyway.
@@ -46,8 +38,6 @@ class Main extends React.Component {
                     selection.addRange(range);
                 }
             }
-        } else {
-            console.log("  componentDidUpdate: no selection");
         }
     }
 
@@ -60,7 +50,7 @@ class Main extends React.Component {
         return setTimeout(fetchSuggestionsClosure, 200);
     }
 
-    resetFetchSuggestionsTimer() {
+    startFetchSuggestionsTimer() {
         if (this.state.fetchSuggestionsTimer) {
             clearTimeout(this.state.fetchSuggestionsTimer);
         }
@@ -82,13 +72,11 @@ class Main extends React.Component {
 
     textChange(e) {
         // TODO: ugh. probably render this in the shadow DOM and remove this particular node?
-        let textContent = e.target.value.split(' <span contenteditable=')[0];
-        console.log("pre striptags: ", JSON.stringify(textContent));
+        console.log('textChange, e.target.value:', e.target.value);
+        let textContent = e.target.value.split('<span contenteditable=')[0];
         textContent = striptags(textContent);
-        console.log("post striptags: ", JSON.stringify(textContent));
 
         const { startOffset, endOffset } = this.getCurrentRange();
-        console.log("startOffset:", startOffset, ", endOffset:", endOffset);
         this.props.updateText(textContent, startOffset, endOffset);
     }
 
@@ -111,17 +99,15 @@ class Main extends React.Component {
             return;
         }
 
-        console.log('acceptOption')
-
         const postfixLength = acceptedPostfix.length;
 
-        const text = `${this.props.text}${acceptedPostfix}`;
+        const newText = `${this.props.text}${acceptedPostfix}`;
         let { startOffset, endOffset } = this.getCurrentRange();
 
         startOffset = startOffset + postfixLength;
         endOffset = endOffset + postfixLength;
 
-        this.props.updateText(text, startOffset, endOffset);
+        this.props.updateText(newText, startOffset, endOffset);
     }
 
     render() {
@@ -132,12 +118,16 @@ class Main extends React.Component {
                     onChange={ (e) => this.textChange(e) }
                     onSelect={ (e) => this.selectionChange(e) }
                     onKeyDown={ (e) => {
-                        this.resetFetchSuggestionsTimer();
-                        if ([13, 9].includes(e.keyCode)) {
-                            this.acceptOption(e);
-                            e.preventDefault();
+                        // Arrow keys and ESC should not trigger suggestions
+                        if (![27, 37, 38, 39, 40].includes(e.keyCode)) {
+                            this.startFetchSuggestionsTimer();
+                            // Tab should accept the suggestion
+                            if (e.keyCode === 9) {
+                                this.acceptOption(e);
+                                e.preventDefault();
+                            }
+                            this.props.clearPostfix();
                         }
-                        this.props.clearPostfix();
                     }}
                     html={html}
                     innerRef={ (ref) => this.saveEditableNode(ref) }
