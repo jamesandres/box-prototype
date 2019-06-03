@@ -23,8 +23,8 @@ const abandonSuggestionsAction = (reason) => ({
 
 export const fetchSuggestions = (text, token) =>
     async (dispatch, getState) => {
-        const escapedText = encodeURI(text);
-        const escapedToken = encodeURI(token);
+        const escapedText = encodeURIComponent(text);
+        const escapedToken = encodeURIComponent(token);
         fetch(`http://localhost:8010/suggest?q=${escapedText}&token=${escapedToken}`)
             .catch(e => {
                 dispatch(fetchSuggestionsErrorAction(e.toString()));

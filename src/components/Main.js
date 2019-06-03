@@ -10,35 +10,32 @@ class Main extends React.Component {
         this.state = {
             editableNode: null,
             fetchSuggestionsTimer: null,
-            token: "9xV8UIMGgocZ7AYz9r53EVoY86fLXeUSK9GjeMvkT2Zg0UaY8A89aAywA4U6WN9hcxlJB4wv7agMCRZgMut5GVVE4rN2Ajp5A2Qex22dQdQIgoNG1PAJdzY9O8WXOAsE5mb5oh4TxzrsXpqSf93028nYjHFP"
+            token: "R/V3efHko6jSvBuauhrHSwWABc88ntDzd2vCxWX7uQh8+wPakOPIVprmvYH+AGUex4aYHppzALMtYgcmglQZlInDkXqDpbcUpO0MGqSFj/dSD+qG5W0V5chbxIMZ0WPEX8WBKzS5LsXzatHk0h/uVx7fizC3"
         };
     }
 
+    // componentDidUpdate
+    // ~~~~~~~~~~~~~~~~~~
+    // Invoked whenever the component has a state change.  The componentDidUpdate is particularly
+    // useful when an operation needs to happen after the DOM is updated and the update queue is
+    // emptied. It's probably most useful on complex renders and state or DOM changes or when you
+    // need something to be the absolutely last thing to be executed.
     componentDidUpdate(prevProps) {
-        let selection = window.getSelection();
-        if (selection) {
-            if (this.state.editableNode.firstChild) {
-                let currentStartOffset, currentEndOffset;
-                const currentRange = this.getCurrentRange();
-                if (!currentRange) {
-                    return;
-                }
-
-                currentStartOffset = currentRange.startOffset;
-                currentEndOffset = currentRange.endOffset;
-
-                if (this.props.startOffset !== currentStartOffset || this.props.endOffset !== currentEndOffset) {
-                    const range = document.createRange();
-                    // oh no. editableNode.firstChild.firstChild doesn't exist on initial load but we do need to set the carat to the beginning of the
-                    // box anyway.
-                    const nodeToAlter = this.state.editableNode.firstChild.firstChild ? this.state.editableNode.firstChild.firstChild : this.state.editableNode.firstChild;
-                    range.setStart(nodeToAlter, this.props.startOffset);
-                    range.setEnd(nodeToAlter, this.props.endOffset);
-                    selection.removeAllRanges();
-                    selection.addRange(range);
-                }
-            }
+        // FIXME: Our cursor positioning code is full of holes. We should try to stick to the
+        //        underlying code provided by react-contenteditable
+        //        https://github.com/lovasoa/react-contenteditable/blob/master/src/react-contenteditable.tsx#L99
+        const nodeToAlter = this.state.editableNode.firstChild;
+        if (!nodeToAlter) {
+            return;
         }
+        // if (this.props.startOffset !== currentStartOffset || this.props.endOffset !== currentEndOffset) {
+            let selection = window.getSelection();
+            const range = document.createRange();
+            range.setStart(nodeToAlter, this.props.startOffset);
+            range.setEnd(nodeToAlter, this.props.endOffset);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        // }
     }
 
     fetchSuggestionsTimer() {
@@ -60,7 +57,6 @@ class Main extends React.Component {
     }
 
     getCurrentRange() {
-        this.getCaretCharacterOffsetWithin(); // JUST DEBUGGING
         // this returns 0,0 when the user has just accepted a suggestion.
         if (window.getSelection()) {
             try {
@@ -71,40 +67,12 @@ class Main extends React.Component {
         }
     }
 
-    // DEBUGGING AN IDEA
-    getCaretCharacterOffsetWithin() {
-        const element = this.state.editableNode;
-
-        // See: https://stackoverflow.com/a/4812022/806988
-        var caretOffset = 0;
-        var doc = element.ownerDocument || element.document;
-        var win = doc.defaultView || doc.parentWindow;
-        var sel;
-        if (typeof win.getSelection != "undefined") {
-            sel = win.getSelection();
-            if (sel.rangeCount > 0) {
-                var range = win.getSelection().getRangeAt(0);
-                var preCaretRange = range.cloneRange();
-                preCaretRange.selectNodeContents(element);
-                preCaretRange.setEnd(range.endContainer, range.endOffset);
-                caretOffset = preCaretRange.toString().length;
-            }
-        } else if ( (sel = doc.selection) && sel.type != "Control") {
-            var textRange = sel.createRange();
-            var preCaretTextRange = doc.body.createTextRange();
-            preCaretTextRange.moveToElementText(element);
-            preCaretTextRange.setEndPoint("EndToEnd", textRange);
-            caretOffset = preCaretTextRange.text.length;
-        }
-        console.log('getCaretCharacterOffsetWithin, caretOffset:', caretOffset);
-        return caretOffset;
-    }
-
     textChange(e) {
+        let newText = e.target.value;
         // TODO: ugh. probably render this in the shadow DOM and remove this particular node?
-        console.log('textChange, e.target.value:', e.target.value);
-        let newText = e.target.value.split('<span contenteditable=')[0];
-        newText = striptags(newText);
+        newText = newText.split('<span contenteditable=')[0];
+        // newText = newText.replace('<br>', '\n');
+        // newText = striptags(newText);
         if (newText !== this.props.text) {
             this.selectionChange() // Also update state with new cursor position
             this.props.updateText(newText);
@@ -140,24 +108,31 @@ class Main extends React.Component {
     }
 
     render() {
-        // TODO: Figure out why text was wrapped in a <span>?
-        const html = `<span>${this.props.text || ''}</span><span contenteditable="false" class="postfix">${this.props.postfix || ''}</span>`;
+        // const html = `${this.props.text || ''}`;
+        const html = `${this.props.text || ''}<span contenteditable="false" class="postfix">${this.props.postfix || ''}</span>`;
         return (
             <div>
                 <ContentEditable
                     onChange={ (e) => this.textChange(e) }
                     onSelect={ (e) => this.selectionChange(e) }
                     onKeyDown={ (e) => {
-                        const arrowKeysAndESC = [27, 37, 38, 39, 40];
-                        const tabKeyAndReturn = [9, 13];
-                        if (!arrowKeysAndESC.includes(e.keyCode)) {
-                            this.startFetchSuggestionsTimer();
-                            if (tabKeyAndReturn.includes(e.keyCode)) {
-                                this.acceptOption(e);
-                                e.preventDefault();
-                            }
-                            this.props.clearPostfix();
+                        const arrowKeysESCAndReturn = [27, 37, 38, 39, 40, 13];
+                        const tabKey = [9];
+                        const altCtrlMeta = e.altKey || e.ctrlKey || e.metaKey;
+                        console.log('onKeyDown', {'e.keyCode': e.keyCode,
+                                                  'chr(e.keyCode)': String.fromCharCode(e.keyCode),
+                                                  'arrowKeysESCAndReturn': arrowKeysESCAndReturn,
+                                                  'tabKey': tabKey,
+                                                  'altCtrlMeta': altCtrlMeta})
+                        if (arrowKeysESCAndReturn.includes(e.keyCode) || altCtrlMeta) {
+                            return true;
                         }
+                        this.startFetchSuggestionsTimer();
+                        if (tabKey.includes(e.keyCode)) {
+                            this.acceptOption(e);
+                            e.preventDefault();
+                        }
+                        this.props.clearPostfix();
                     }}
                     html={html}
                     innerRef={ (ref) => this.saveEditableNode(ref) }
