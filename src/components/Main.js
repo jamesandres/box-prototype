@@ -36,6 +36,9 @@ class Main extends React.Component {
             selection.removeAllRanges();
             selection.addRange(range);
         // }
+        this.state.editableNode.insertAdjacentHTML(
+            'beforeend',
+            `<span contenteditable="false" class="postfix">${this.props.postfix || ''}</span>`);
     }
 
     fetchSuggestionsTimer() {
@@ -151,8 +154,6 @@ class Main extends React.Component {
     }
 
     render() {
-        // const html = `${this.props.text || ''}`;
-        const html = `${this.props.text || ''}<span contenteditable="false" class="postfix">${this.props.postfix || ''}</span>`;
         return (
             <div>
                 <ContentEditable
@@ -177,7 +178,7 @@ class Main extends React.Component {
                         }
                         this.props.clearPostfix();
                     }}
-                    html={html}
+                    html={this.props.text || ''}
                     innerRef={ (ref) => this.saveEditableNode(ref) }
                 />
                 <hr />
