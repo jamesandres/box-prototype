@@ -9,8 +9,7 @@ class Main extends React.Component {
         super();
         this.state = {
             editableNode: null,
-            fetchSuggestionsTimer: null,
-            token: "R/V3efHko6jSvBuauhrHSwWABc88ntDzd2vCxWX7uQh8+wPakOPIVprmvYH+AGUex4aYHppzALMtYgcmglQZlInDkXqDpbcUpO0MGqSFj/dSD+qG5W0V5chbxIMZ0WPEX8WBKzS5LsXzatHk0h/uVx7fizC3"
+            fetchSuggestionsTimer: null
         };
     }
 
@@ -38,10 +37,14 @@ class Main extends React.Component {
         // }
     }
 
+    componentDidMount() {
+        this.props.fetchToken();
+    }
+
     fetchSuggestionsTimer() {
         const fetchSuggestionsClosure = (() => () => {
             if (this.props.text) {
-                this.props.fetchSuggestions(this.props.text, this.state.token);
+                this.props.fetchSuggestions(this.props.text, this.props.token);
             }
         })();
         return setTimeout(fetchSuggestionsClosure, 200);
@@ -81,6 +84,7 @@ class Main extends React.Component {
 
     selectionChange(e) {
         const { startOffset, endOffset } = this.getCurrentRange();
+        console.log('selectionChange', startOffset, endOffset)
         this.props.updateSelection(startOffset, endOffset);
     }
 
@@ -108,7 +112,6 @@ class Main extends React.Component {
     }
 
     render() {
-        // const html = `${this.props.text || ''}`;
         const html = `${this.props.text || ''}<span contenteditable="false" class="postfix">${this.props.postfix || ''}</span>`;
         return (
             <div>
@@ -141,8 +144,7 @@ class Main extends React.Component {
                 <p>
                     <label>Token:</label>
                     <input type="text"
-                           value={this.state.token}
-                           onChange={ (e) => this.setState({"token": e.value}) } />
+                           value={this.props.token} />
                 </p>
             </div>
         );

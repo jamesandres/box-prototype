@@ -72,3 +72,32 @@ export const updateSelection = (startOffset, endOffset) =>
     (dispatch, getState) => {
         dispatch(updateSelectionAction(startOffset, endOffset));
     };
+
+
+const fetchTokenSuccessAction = (token) => ({
+    type: 'FETCH_TOKEN_SUCCESS',
+    token: token
+});
+
+const fetchTokenErrorAction = () => ({
+    type: 'FETCH_TOKEN_ERROR'
+});
+
+
+export const fetchToken = () =>
+    async (dispatch, getState) => {
+        fetch('http://localhost:8000/autocomplete/token')
+            .catch((e) => {
+                console.error(e);
+                dispatch(fetchTokenErrorAction());
+            })
+            .then(response => {
+                if (response && response.ok) {
+                    const responseJson = response.json();
+                    dispatch(fetchTokenSuccessAction(responseJson.auth_token));
+                } else {
+                    console.error(response);
+                    dispatch(fetchTokenErrorAction());
+                }
+            })
+    };
