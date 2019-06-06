@@ -99,15 +99,27 @@ class Main extends React.Component {
     }
 
     textChange(e) {
-        let newText = e.target.value;
-        // TODO: ugh. probably render this in the shadow DOM and remove this particular node?
-        newText = newText.split('<span contenteditable=')[0];
-        // newText = newText.replace('<br>', '\n');
-        // newText = striptags(newText);
+        const newText = this.removeSuggestionsSpan(e.target.value);
         if (newText !== this.props.text) {
             this.selectionChange() // Also update state with new cursor position
             this.props.updateText(newText);
         }
+    }
+
+    removeSuggestionsSpan(html) {
+        let scratch = document.createElement('div');
+        scratch.innerHTML = html;
+        const xpathResult = document.evaluate('//span[@contenteditable="false"]', scratch);
+        let node, nodes = [];
+        // Annoyingly can't delete the nodes on the initial iteration as mutated XPathResults
+        // cannot be iterated.
+        while (node = xpathResult.iterateNext()) {
+            nodes.push(node);
+        }
+        for (node of nodes) {
+            node.remove();
+        }
+        return scratch.innerHTML;
     }
 
     selectionChange(e) {
@@ -147,16 +159,16 @@ class Main extends React.Component {
                     onChange={ (e) => this.textChange(e) }
                     onSelect={ (e) => this.selectionChange(e) }
                     onKeyDown={ (e) => {
-                        const arrowKeysESCAndReturn = [27, 37, 38, 39, 40, 13];
+                        const arrowKeysAndESC = [27, 37, 38, 39, 40];
+                        const returnKey = [13];
                         const tabKey = [9];
                         const altCtrlMeta = e.altKey || e.ctrlKey || e.metaKey;
-                        console.log('onKeyDown', {'e.keyCode': e.keyCode,
-                                                  'chr(e.keyCode)': String.fromCharCode(e.keyCode),
-                                                  'arrowKeysESCAndReturn': arrowKeysESCAndReturn,
-                                                  'tabKey': tabKey,
-                                                  'altCtrlMeta': altCtrlMeta})
-                        if (arrowKeysESCAndReturn.includes(e.keyCode) || altCtrlMeta) {
-                            return true;
+                        if (arrowKeysAndESC.includes(e.keyCode) || altCtrlMeta) {
+                            return;
+                        }
+                        if (returnKey.includes(e.keyCode)) {
+                            this.props.clearPostfix();
+                            return;
                         }
                         this.startFetchSuggestionsTimer();
                         if (tabKey.includes(e.keyCode)) {
