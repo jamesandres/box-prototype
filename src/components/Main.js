@@ -10,7 +10,7 @@ class Main extends React.Component {
         this.state = {
             editableNode: null,
             fetchSuggestionsTimer: null,
-            token: "TPH07EcYxh2SuzjTujMO63L2QCW6QpDH9A6rRWlFqyhxfphL63pwS+2KAsKNeiVFQjdUS6r9SG6vSDUXC4XIUnOX7Z2J5TP17b70CJtl8ZM2o0JpQRCxm8RJ2xfFOJh1Atb/Pm6C+R96oup9p7xE+q2hej2C"
+            token: "yFZT20WxylFVEVj5S25scpOhTfERJVunGyUcll4Ap0wwmBrJTOYS7Amd04bWK/8qfGUQ7Aicul/1DihDgOrrPVu+b+nEDCjKpC1Lu1DqRn2MmAX4VCTtP0VYX5PYtZN193nxZ2ObJ7O8xWPL5roYcHUMubRL"
         };
     }
 
@@ -31,14 +31,34 @@ class Main extends React.Component {
         // if (this.props.startOffset !== currentStartOffset || this.props.endOffset !== currentEndOffset) {
             let selection = window.getSelection();
             const range = document.createRange();
-            range.setStart(nodeToAlter, this.props.startOffset);
-            range.setEnd(nodeToAlter, this.props.endOffset);
+            range.setStart(this.findByDOMPath(this.state.editableNode, this.props.startContainerPath),
+                           this.props.startOffset);
+            range.setEnd(this.findByDOMPath(this.state.editableNode, this.props.endContainerPath),
+                           this.props.endOffset);
             selection.removeAllRanges();
             selection.addRange(range);
         // }
-        this.state.editableNode.insertAdjacentHTML(
-            'beforeend',
-            `<span contenteditable="false" class="postfix">${this.props.postfix || ''}</span>`);
+        this.showSuggestionsSpan();
+    }
+
+    findSuggestionsSpan() {
+        const xpathResult = document.evaluate('//span[@contenteditable="false"]', this.state.editableNode);
+        return xpathResult.iterateNext();
+    }
+
+    showSuggestionsSpan() {
+        if (this.props.postfix && !this.findSuggestionsSpan()) {
+            this.state.editableNode.insertAdjacentHTML(
+                'beforeend',
+                `<span contenteditable="false" class="postfix">${this.props.postfix}</span>`);
+        }
+    }
+
+    removeSuggestionsSpan() {
+        let span = this.findSuggestionsSpan();
+        if (span) {
+            span.remove();
+        }
     }
 
     fetchSuggestionsTimer() {
@@ -59,75 +79,68 @@ class Main extends React.Component {
         });
     }
 
+    findByDOMPath(root, path) {
+        let child = root;
+        for (let i in path.split('.')) {
+            child = child.childNodes[i];
+        }
+        return child;
+    }
+
+    encodeDOMPath(root, node, stack=[]) {
+        if (!root || !node) {
+            return '';
+        }
+        if (node == root) {
+            return stack.join('.');
+        }
+
+        let nodeIndex = null;
+
+        for (const i in node.parentNode.childNodes) {
+            const child = node.parentNode.childNodes[i];
+            if (child == node) {
+                stack.unshift(i);
+                break;
+            }
+        }
+
+        return this.encodeDOMPath(root, node.parentNode, stack);
+    }
+
     getCurrentRange() {
         if (this.state.editableNode) {
             const endOfText = this.state.editableNode.length;
             if (window.getSelection()) {
                 const range = window.getSelection().getRangeAt(0);
-                // This is still quite shonky but does get Ctrl+A working, and arrow keys mostly
-                // working.
-                //
-                // The situation with Ctrl+A ended up being as follows. Let's assume the following
-                // DOM structure:
-                //     - <div>
-                //       - text: "thanks"
-                //       - <span>
-                //         - text: " for getting in touch"
-                // Ctrl+A ended up creating this range:
-                //     {startContainer: div.childNodes[0],
-                //      startOffset: 0,
-                //      endContainer: div
-                //      endOffset: 2}
-                // The start seems sensible, but the end seems fairly odd. However if you consider that
-                // endOffset in the context of a div is counting the number of inner nodes it does make
-                // some sense.
-                //
-                // The shonky solution here is to assume that any start or end which is not on the
-                // initial text node must be "after" the starting text node, hence snapping that
-                // boundary to the end of the text node is reasonable.
-                //
+                // Ranges are a fairly complex thing. Highly recommend reading the spec.
                 // see: https://dom.spec.whatwg.org/#ranges
-                let startOffset = range.startContainer == this.state.editableNode.firstChild
-                                  ? range.startOffset
-                                  : endOfText,
-                    endOffset = range.endContainer == this.state.editableNode.firstChild
-                                  ? range.endOffset
-                                  : endOfText;
-                return [startOffset, endOffset]
+                let ret =  [this.encodeDOMPath(this.state.editableNode, range.startContainer),
+                            range.startOffset,
+                            this.encodeDOMPath(this.state.editableNode, range.endContainer),
+                            range.endOffset]
+                console.log('getCurrentRange', {ret, text: this.state.editableNode.innerHTML})
+                return ret;
             } else {
-                return [endOfText, endOfText]; // If unsure put caret at end
+                throw new Error("TODO: Figure out how to put caret at the end..");
             }
         }
-        return [0, 0]; // Just return something sensible
+        console.log('getCurrentRange (default)')
+        return ['0', 0, '0', 0]; // Just return something sensible
     }
 
     textChange(e) {
-        const newText = this.removeSuggestionsSpan(e.target.value);
+        this.removeSuggestionsSpan();
+        const newText = this.state.editableNode.innerHTML;
         if (newText !== this.props.text) {
             this.selectionChange() // Also update state with new cursor position
             this.props.updateText(newText);
         }
     }
 
-    removeSuggestionsSpan(html) {
-        let scratch = document.createElement('div');
-        scratch.innerHTML = html;
-        const xpathResult = document.evaluate('//span[@contenteditable="false"]', scratch);
-        let node, nodes = [];
-        // Annoyingly can't delete the nodes on the initial iteration as mutated XPathResults
-        // cannot be iterated.
-        while (node = xpathResult.iterateNext()) {
-            nodes.push(node);
-        }
-        for (node of nodes) {
-            node.remove();
-        }
-        return scratch.innerHTML;
-    }
-
     selectionChange(e) {
-        const [ startOffset, endOffset ] = this.getCurrentRange();
-        this.props.updateSelection(startOffset, endOffset);
+        const [ startContainerPath, startOffset, endContainerPath, endOffset ] = this.getCurrentRange();
+        this.props.updateSelection(startContainerPath, startOffset, endContainerPath, endOffset);
     }
 
     saveEditableNode(node) {
@@ -150,6 +163,7 @@ class Main extends React.Component {
         let [ startOffset, endOffset ] = this.getCurrentRange();
 
         this.props.updateText(newText);
+        // TODO: Figure out startContainerPath and endContainerPath here
         this.props.updateSelection(startOffset + postfixLength, endOffset + postfixLength);
     }
 

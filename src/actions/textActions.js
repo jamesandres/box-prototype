@@ -62,13 +62,15 @@ export const updateText = (text) =>
     };
 
 
-const updateSelectionAction = (startOffset, endOffset) => ({
+const updateSelectionAction = (startContainerPath, startOffset, endContainerPath, endOffset) => ({
     type: 'UPDATE_SELECTION',
+    startContainerPath,
     startOffset,
+    endContainerPath,
     endOffset
 });
 
-export const updateSelection = (startOffset, endOffset) =>
+export const updateSelection = (startContainerPath, startOffset, endContainerPath, endOffset) =>
     (dispatch, getState) => {
-        dispatch(updateSelectionAction(startOffset, endOffset));
+        dispatch(updateSelectionAction(startContainerPath, startOffset, endContainerPath, endOffset));
     };

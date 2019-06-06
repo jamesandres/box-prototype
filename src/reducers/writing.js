@@ -2,7 +2,9 @@ const initialState = {
     text: '',
     postfix: null,
     startOffset: 0,
-    endOffset: 0
+    startContainerPath: '0',
+    endOffset: 0,
+    endContainerPath: '0'
 };
 
 const writing = (state = initialState, action) => {

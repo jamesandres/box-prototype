@@ -8,7 +8,9 @@ const mapStateToProps = state => ({
     text: state.writing.text,
     postfix: state.writing.postfix,
     startOffset: state.writing.startOffset,
-    endOffset: state.writing.endOffset
+    startContainerPath: state.writing.startContainerPath,
+    endOffset: state.writing.endOffset,
+    endContainerPath: state.writing.endContainerPath
 });
 
 const mapDispatchToProps = dispatch => ({
