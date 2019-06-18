@@ -6,14 +6,11 @@ import Main from '../components/Main';
 
 const mapStateToProps = state => ({
     text: state.writing.text,
-    postfix: state.writing.postfix,
-    startOffset: state.writing.startOffset,
-    endOffset: state.writing.endOffset
+    postfix: state.writing.postfix
 });
 
 const mapDispatchToProps = dispatch => ({
     updateText: compose(dispatch, updateText),
-    updateSelection: compose(dispatch, updateSelection),
     fetchSuggestions: compose(dispatch, fetchSuggestions),
     clearPostfix: compose(dispatch, clearPostfix)
 });

@@ -60,15 +60,3 @@ export const updateText = (text) =>
     (dispatch, getState) => {
         dispatch(updateTextAction(text));
     };
-
-
-const updateSelectionAction = (startOffset, endOffset) => ({
-    type: 'UPDATE_SELECTION',
-    startOffset,
-    endOffset
-});
-
-export const updateSelection = (startOffset, endOffset) =>
-    (dispatch, getState) => {
-        dispatch(updateSelectionAction(startOffset, endOffset));
-    };

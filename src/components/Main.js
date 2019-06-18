@@ -10,7 +10,7 @@ class Main extends React.Component {
         this.state = {
             editableNode: null,
             fetchSuggestionsTimer: null,
-            token: "TPH07EcYxh2SuzjTujMO63L2QCW6QpDH9A6rRWlFqyhxfphL63pwS+2KAsKNeiVFQjdUS6r9SG6vSDUXC4XIUnOX7Z2J5TP17b70CJtl8ZM2o0JpQRCxm8RJ2xfFOJh1Atb/Pm6C+R96oup9p7xE+q2hej2C"
+            token: "9nsP8FqKIDHMQwnb3u7CFiu5gvnwMXg86f90nygssdwBes1h3wF7GIy7ZXASNUh+S7yazwkGvsQ2IwL/R+Zzqw+4ejHcUgYwvdO+q6KlC21dQOoRKPdKyUba73pyek7O/DBJ365AXhQF2RXkRzS2C03vVUt7"
         };
     }
 
@@ -21,21 +21,9 @@ class Main extends React.Component {
     // emptied. It's probably most useful on complex renders and state or DOM changes or when you
     // need something to be the absolutely last thing to be executed.
     componentDidUpdate(prevProps) {
-        // FIXME: Our cursor positioning code is full of holes. We should try to stick to the
-        //        underlying code provided by react-contenteditable
-        //        https://github.com/lovasoa/react-contenteditable/blob/master/src/react-contenteditable.tsx#L99
-        const nodeToAlter = this.state.editableNode.firstChild;
-        if (!nodeToAlter) {
+        if (!this.state.editableNode.firstChild) {
             return;
         }
-        // if (this.props.startOffset !== currentStartOffset || this.props.endOffset !== currentEndOffset) {
-            let selection = window.getSelection();
-            const range = document.createRange();
-            range.setStart(nodeToAlter, this.props.startOffset);
-            range.setEnd(nodeToAlter, this.props.endOffset);
-            selection.removeAllRanges();
-            selection.addRange(range);
-        // }
         this.state.editableNode.insertAdjacentHTML(
             'beforeend',
             `<span contenteditable="false" class="postfix">${this.props.postfix || ''}</span>`);
@@ -59,52 +47,9 @@ class Main extends React.Component {
         });
     }
 
-    getCurrentRange() {
-        if (this.state.editableNode) {
-            const endOfText = this.state.editableNode.length;
-            if (window.getSelection()) {
-                const range = window.getSelection().getRangeAt(0);
-                // This is still quite shonky but does get Ctrl+A working, and arrow keys mostly
-                // working.
-                //
-                // The situation with Ctrl+A ended up being as follows. Let's assume the following
-                // DOM structure:
-                //     - <div>
-                //       - text: "thanks"
-                //       - <span>
-                //         - text: " for getting in touch"
-                // Ctrl+A ended up creating this range:
-                //     {startContainer: div.childNodes[0],
-                //      startOffset: 0,
-                //      endContainer: div
-                //      endOffset: 2}
-                // The start seems sensible, but the end seems fairly odd. However if you consider that
-                // endOffset in the context of a div is counting the number of inner nodes it does make
-                // some sense.
-                //
-                // The shonky solution here is to assume that any start or end which is not on the
-                // initial text node must be "after" the starting text node, hence snapping that
-                // boundary to the end of the text node is reasonable.
-                //
-                // see: https://dom.spec.whatwg.org/#ranges
-                let startOffset = range.startContainer == this.state.editableNode.firstChild
-                                  ? range.startOffset
-                                  : endOfText,
-                    endOffset = range.endContainer == this.state.editableNode.firstChild
-                                  ? range.endOffset
-                                  : endOfText;
-                return [startOffset, endOffset]
-            } else {
-                return [endOfText, endOfText]; // If unsure put caret at end
-            }
-        }
-        return [0, 0]; // Just return something sensible
-    }
-
     textChange(e) {
         const newText = this.removeSuggestionsSpan(e.target.value);
         if (newText !== this.props.text) {
-            this.selectionChange() // Also update state with new cursor position
             this.props.updateText(newText);
         }
     }
@@ -125,11 +70,6 @@ class Main extends React.Component {
         return scratch.innerHTML;
     }
 
-    selectionChange(e) {
-        const [ startOffset, endOffset ] = this.getCurrentRange();
-        this.props.updateSelection(startOffset, endOffset);
-    }
-
     saveEditableNode(node) {
         if (!this.state.editableNode) {
             this.setState({
@@ -147,10 +87,8 @@ class Main extends React.Component {
         const postfixLength = acceptedPostfix.length;
 
         const newText = `${this.props.text}${acceptedPostfix}`;
-        let [ startOffset, endOffset ] = this.getCurrentRange();
 
         this.props.updateText(newText);
-        this.props.updateSelection(startOffset + postfixLength, endOffset + postfixLength);
     }
 
     render() {
@@ -158,7 +96,6 @@ class Main extends React.Component {
             <div>
                 <ContentEditable
                     onChange={ (e) => this.textChange(e) }
-                    onSelect={ (e) => this.selectionChange(e) }
                     onKeyDown={ (e) => {
                         const arrowKeysAndESC = [27, 37, 38, 39, 40];
                         const returnKey = [13];
@@ -178,7 +115,7 @@ class Main extends React.Component {
                         }
                         this.props.clearPostfix();
                     }}
-                    html={this.props.text || ''}
+                    html={this.props.text}
                     innerRef={ (ref) => this.saveEditableNode(ref) }
                 />
                 <hr />
@@ -199,7 +136,6 @@ Main.propTypes = {
     startOffset: PropTypes.number,
     endOffset: PropTypes.number,
     updateText: PropTypes.func.isRequired,
-    updateSelection: PropTypes.func.isRequired,
     fetchSuggestions: PropTypes.func.isRequired
 };
 

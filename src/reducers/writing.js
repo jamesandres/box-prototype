@@ -1,8 +1,6 @@
 const initialState = {
     text: '',
-    postfix: null,
-    startOffset: 0,
-    endOffset: 0
+    postfix: ''
 };
 
 const writing = (state = initialState, action) => {
@@ -11,13 +9,6 @@ const writing = (state = initialState, action) => {
             return {
                 ...state,
                 text: action.text
-            };
-        }
-        case 'UPDATE_SELECTION': {
-            return {
-                ...state,
-                startOffset: action.startOffset,
-                endOffset: action.endOffset
             };
         }
         case 'UPDATE_POSTFIX': {
