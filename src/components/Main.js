@@ -1,14 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import ContentEditable from 'react-contenteditable';
-import striptags from 'striptags';
 
 
 class Main extends React.Component {
     constructor() {
         super();
+        this.contentEditableRef = React.createRef();
         this.state = {
-            editableNode: null,
             fetchSuggestionsTimer: null,
             token: "9nsP8FqKIDHMQwnb3u7CFiu5gvnwMXg86f90nygssdwBes1h3wF7GIy7ZXASNUh+S7yazwkGvsQ2IwL/R+Zzqw+4ejHcUgYwvdO+q6KlC21dQOoRKPdKyUba73pyek7O/DBJ365AXhQF2RXkRzS2C03vVUt7"
         };
@@ -21,10 +20,11 @@ class Main extends React.Component {
     // emptied. It's probably most useful on complex renders and state or DOM changes or when you
     // need something to be the absolutely last thing to be executed.
     componentDidUpdate(prevProps) {
-        if (!this.state.editableNode.firstChild) {
+        if (!this.contentEditableRef.current.firstChild) {
             return;
         }
-        this.state.editableNode.insertAdjacentHTML(
+        // FIXME: This line is what's causing the janky multiline editing.
+        this.contentEditableRef.current.insertAdjacentHTML(
             'beforeend',
             `<span contenteditable="false" class="postfix">${this.props.postfix || ''}</span>`);
     }
@@ -70,21 +70,11 @@ class Main extends React.Component {
         return scratch.innerHTML;
     }
 
-    saveEditableNode(node) {
-        if (!this.state.editableNode) {
-            this.setState({
-                editableNode: node
-            });
-        }
-    }
-
     acceptOption(e) {
         const acceptedPostfix = this.props.postfix;
         if (!acceptedPostfix) {
             return;
         }
-
-        const postfixLength = acceptedPostfix.length;
 
         const newText = `${this.props.text}${acceptedPostfix}`;
 
@@ -116,7 +106,7 @@ class Main extends React.Component {
                         this.props.clearPostfix();
                     }}
                     html={this.props.text}
-                    innerRef={ (ref) => this.saveEditableNode(ref) }
+                    innerRef={this.contentEditableRef}
                 />
                 <hr />
                 <p>

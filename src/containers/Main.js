@@ -1,7 +1,7 @@
 import { compose } from 'redux';
 import { connect } from 'react-redux';
 
-import { updateText, updateSelection, fetchSuggestions, clearPostfix } from '../actions/textActions';
+import { updateText, fetchSuggestions, clearPostfix } from '../actions/textActions';
 import Main from '../components/Main';
 
 const mapStateToProps = state => ({
