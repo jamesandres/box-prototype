@@ -9,24 +9,8 @@ class Main extends React.Component {
         this.contentEditableRef = React.createRef();
         this.state = {
             fetchSuggestionsTimer: null,
-            token: "9nsP8FqKIDHMQwnb3u7CFiu5gvnwMXg86f90nygssdwBes1h3wF7GIy7ZXASNUh+S7yazwkGvsQ2IwL/R+Zzqw+4ejHcUgYwvdO+q6KlC21dQOoRKPdKyUba73pyek7O/DBJ365AXhQF2RXkRzS2C03vVUt7"
+            token: "VPBmhXXIFfA/Mu5vTSyWiZtJYT7TIfK8TuFHOgQ0FLa1Qjl1qbUBbstODme5znEwDUK7FncrxQdzEFQYVaMqBGGM6L47MADA3a59b9rAdqbWDvotpOPTMePhHtZDx7CimCAeDntOA9fNRdSwNhahjERX/6Sw"
         };
-    }
-
-    // componentDidUpdate
-    // ~~~~~~~~~~~~~~~~~~
-    // Invoked whenever the component has a state change.  The componentDidUpdate is particularly
-    // useful when an operation needs to happen after the DOM is updated and the update queue is
-    // emptied. It's probably most useful on complex renders and state or DOM changes or when you
-    // need something to be the absolutely last thing to be executed.
-    componentDidUpdate(prevProps) {
-        if (!this.contentEditableRef.current.firstChild) {
-            return;
-        }
-        // FIXME: This line is what's causing the janky multiline editing.
-        this.contentEditableRef.current.insertAdjacentHTML(
-            'beforeend',
-            `<span contenteditable="false" class="postfix">${this.props.postfix || ''}</span>`);
     }
 
     fetchSuggestionsTimer() {
@@ -48,7 +32,9 @@ class Main extends React.Component {
     }
 
     textChange(e) {
+        console.log('textChange: e.target.value', e.target.value);
         const newText = this.removeSuggestionsSpan(e.target.value);
+        console.log('textChange: newText', newText);
         if (newText !== this.props.text) {
             this.props.updateText(newText);
         }
@@ -87,6 +73,7 @@ class Main extends React.Component {
                 <ContentEditable
                     onChange={ (e) => this.textChange(e) }
                     onKeyDown={ (e) => {
+                        // TODO: Redo this key handling, new shit has come to light!
                         const arrowKeysAndESC = [27, 37, 38, 39, 40];
                         const returnKey = [13];
                         const tabKey = [9];
@@ -105,7 +92,7 @@ class Main extends React.Component {
                         }
                         this.props.clearPostfix();
                     }}
-                    html={this.props.text}
+                    html={this.props.text + `<span contenteditable="false" class="postfix">${this.props.postfix}</span>`}
                     innerRef={this.contentEditableRef}
                 />
                 <hr />
