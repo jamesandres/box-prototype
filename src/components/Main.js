@@ -54,15 +54,45 @@ class Main extends React.Component {
         return scratch.innerHTML;
     }
 
+    parseAndFindLastTextNode(html) {
+        let scratch = document.createElement('div');
+        scratch.innerHTML = html;
+
+        const xpathResult = document.evaluate('//descendant::text()[last()]', scratch);
+        const lastTextNode = xpathResult.iterateNext();
+
+        if (!lastTextNode) {
+            return html;
+        }
+
+        return [scratch, lastTextNode];
+    }
+
+    injectedWithPostfix(html, postfix) {
+        if (!postfix) {
+            return html;
+        }
+
+        const [scratch, lastTextNode] = this.parseAndFindLastTextNode(html);
+
+        if (!lastTextNode) {
+            return html;
+        }
+
+        lastTextNode.parentNode.insertAdjacentHTML('beforeend', `<span contenteditable="false" class="postfix">${postfix}</span>`);
+        return scratch.innerHTML;
+    }
+
     acceptOption(e) {
         const acceptedPostfix = this.props.postfix;
         if (!acceptedPostfix) {
             return;
         }
 
-        const newText = `${this.props.text}${acceptedPostfix}`;
+        const [scratch, lastTextNode] = this.parseAndFindLastTextNode(this.props.text);
+        lastTextNode.textContent += acceptedPostfix;
 
-        this.props.updateText(newText);
+        this.props.updateText(scratch.innerHTML);
     }
 
     render() {
@@ -90,7 +120,7 @@ class Main extends React.Component {
                         }
                         this.props.clearPostfix();
                     }}
-                    html={this.props.text + `<span contenteditable="false" class="postfix">${this.props.postfix}</span>`}
+                    html={this.injectedWithPostfix(this.props.text, this.props.postfix)}
                     innerRef={this.contentEditableRef}
                 />
                 <hr />
