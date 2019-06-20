@@ -15,8 +15,8 @@ class Main extends React.Component {
 
     fetchSuggestionsTimer() {
         const fetchSuggestionsClosure = (() => () => {
-            if (this.props.text) {
-                this.props.fetchSuggestions(this.props.text, this.state.token);
+            if (this.props.humanText) {
+                this.props.fetchSuggestions(this.props.humanText, this.state.token);
             }
         })();
         return setTimeout(fetchSuggestionsClosure, 200);
@@ -32,9 +32,7 @@ class Main extends React.Component {
     }
 
     textChange(e) {
-        console.log('textChange: e.target.value', e.target.value);
         const newText = this.removeSuggestionsSpan(e.target.value);
-        console.log('textChange: newText', newText);
         if (newText !== this.props.text) {
             this.props.updateText(newText);
         }
