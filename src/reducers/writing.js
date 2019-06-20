@@ -1,6 +1,7 @@
 const initialState = {
     text: '',
-    postfix: ''
+    suggestion: '',
+    suggestionNodePath: '0',
 };
 
 const writing = (state = initialState, action) => {
@@ -11,16 +12,18 @@ const writing = (state = initialState, action) => {
                 text: action.text
             };
         }
-        case 'UPDATE_POSTFIX': {
+        case 'UPDATE_SUGGESTION': {
             return {
                 ...state,
-                postfix: action.postfix
+                suggestion: action.suggestion,
+                suggestionNodePath: action.suggestionNodePath
             };
         }
-        case 'CLEAR_POSTFIX': {
+        case 'CLEAR_SUGGESTION': {
             return {
                 ...state,
-                postfix: ""
+                suggestion: initialState.suggestion,
+                suggestionNodePath: initialState.suggestionNodePath
             };
         }
         default: {

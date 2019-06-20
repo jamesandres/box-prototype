@@ -1,20 +1,19 @@
 import { compose } from 'redux';
 import { connect } from 'react-redux';
 
-import { updateText, fetchSuggestions, clearPostfix } from '../actions/textActions';
-import { textLastSentence } from '../selectors/writing';
+import { updateText, fetchSuggestions, clearSuggestion } from '../actions/textActions';
 import Main from '../components/Main';
 
 const mapStateToProps = state => ({
     text: state.writing.text,
-    textLastSentence: textLastSentence(state),
-    postfix: state.writing.postfix
+    suggestion: state.writing.suggestion,
+    suggestionNodePath: state.writing.suggestionNodePath
 });
 
 const mapDispatchToProps = dispatch => ({
     updateText: compose(dispatch, updateText),
     fetchSuggestions: compose(dispatch, fetchSuggestions),
-    clearPostfix: compose(dispatch, clearPostfix)
+    clearSuggestion: compose(dispatch, clearSuggestion)
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

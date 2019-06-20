@@ -1,16 +1,15 @@
-import { textLastSentence } from '../selectors/writing';
-
-const updatePostfixAction = (suggestion) => ({
-    type: 'UPDATE_POSTFIX',
-    postfix: suggestion
+const updateSuggestionAction = (suggestion, suggestionNodePath) => ({
+    type: 'UPDATE_SUGGESTION',
+    suggestion: suggestion,
+    suggestionNodePath: suggestionNodePath,
 });
 
-const clearPostfixAction = () => ({
-    type: 'CLEAR_POSTFIX'
+const clearSuggestionAction = () => ({
+    type: 'CLEAR_SUGGESTION'
 });
 
-export const clearPostfix = () =>
-    (dispatch, getState) => dispatch(clearPostfixAction());
+export const clearSuggestion = () =>
+    (dispatch, getState) => dispatch(clearSuggestionAction());
 
 
 const fetchSuggestionsErrorAction = (error) => ({
@@ -23,9 +22,10 @@ const abandonSuggestionsAction = (reason) => ({
     reason: reason
 });
 
-export const fetchSuggestions = (lastSentence, token) =>
+export const fetchSuggestions = (sentence, token) =>
     async (dispatch, getState) => {
-        const escapedText = encodeURIComponent(lastSentence);
+        const [text, nodePath] = sentence;
+        const escapedText = encodeURIComponent(text);
         const escapedToken = encodeURIComponent(token);
         fetch(`http://localhost:8010/suggest?q=${escapedText}&token=${escapedToken}`)
             .catch(e => {
@@ -35,20 +35,21 @@ export const fetchSuggestions = (lastSentence, token) =>
             .then(response => response.json())
             .then(responseJson => {
                 if (!responseJson.suggestions || responseJson.suggestions.length <= 0) {
-                    dispatch(abandonSuggestionsAction(`There are no suggestions for ${JSON.stringify(lastSentence)}`));
+                    dispatch(abandonSuggestionsAction(`There are no suggestions for ${JSON.stringify(text)}`));
                     return;
                 }
                 const { suggestion } = responseJson.suggestions[0];
-                const currentLastSentence = textLastSentence(getState());
+                // TODO: Re-add support for abort due to editing race.
+                // const currentLastSentence = textCurrentSentence(getState());
 
-                if (!suggestion.startsWith(currentLastSentence)) {
-                    dispatch(abandonSuggestionsAction(`User changed text since suggestion fetched! was: ${JSON.stringify(lastSentence)}; now is: ${JSON.stringify(currentLastSentence)}`));
-                    return;
-                }
+                // if (!suggestion.startsWith(currentLastSentence)) {
+                //     dispatch(abandonSuggestionsAction(`User changed text since suggestion fetched! was: ${JSON.stringify(text)}; now is: ${JSON.stringify(currentLastSentence)}`));
+                //     return;
+                // }
 
-                const newPostfix = suggestion.slice(lastSentence.length);
+                const newSuggestion = suggestion.slice(text.length);
 
-                dispatch(updatePostfixAction(newPostfix));
+                dispatch(updateSuggestionAction(newSuggestion, nodePath));
             })
     };
 

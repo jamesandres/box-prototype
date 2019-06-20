@@ -15,8 +15,8 @@ class Main extends React.Component {
 
     fetchSuggestionsTimer() {
         const fetchSuggestionsClosure = (() => () => {
-            if (this.props.textLastSentence) {
-                this.props.fetchSuggestions(this.props.textLastSentence, this.state.token);
+            if (this.props.text) {
+                this.props.fetchSuggestions(this.currentSentence(), this.state.token);
             }
         })();
         return setTimeout(fetchSuggestionsClosure, 200);
@@ -29,6 +29,59 @@ class Main extends React.Component {
         this.setState({
             fetchSuggestionsTimer: this.fetchSuggestionsTimer()
         });
+    }
+
+    currentSentence() {
+        const range = this.getCurrentRange();
+
+        if (!range) {
+            return this.lastSentence();
+        } else if (range.startContainer.nodeType !== Node.TEXT_NODE) {
+            // FIXME: Probably this causes grief with selection (ie: startContainer !== endContainer)
+            return this.lastSentence();
+        }
+
+        return [range.startContainer.textContent,
+                this.encodeDOMPath(this.contentEditableRef.current, range.startContainer)];
+    }
+
+    lastSentence() {
+        let scratch = document.createElement('div');
+        scratch.innerHTML = this.contentEditableRef.current.innerHTML;
+
+        const xpathResult = document.evaluate('//descendant::text()[last()]', scratch);
+        const lastTextNode = xpathResult.iterateNext();
+
+        if (!lastTextNode) {
+            return ['', '0'];
+        }
+        return [lastTextNode.textContent,
+                this.encodeDOMPath(scratch, lastTextNode)];
+    }
+
+    getCurrentRange() {
+        if (window.getSelection()) {
+            return window.getSelection().getRangeAt(0);
+        }
+    }
+
+    encodeDOMPath(root, node, stack=[]) {
+        if (!root || !node) {
+            return '';
+        }
+        if (node === root) {
+            return stack.join('.');
+        }
+
+        for (const i in node.parentNode.childNodes) {
+            const child = node.parentNode.childNodes[i];
+            if (child === node) {
+                stack.unshift(i);
+                break;
+            }
+        }
+
+        return this.encodeDOMPath(root, node.parentNode, stack);
     }
 
     textChange(e) {
@@ -54,43 +107,41 @@ class Main extends React.Component {
         return scratch.innerHTML;
     }
 
-    parseAndFindLastTextNode(html) {
+    parseAndFindNode(html, nodePath) {
         let scratch = document.createElement('div');
         scratch.innerHTML = html;
 
-        const xpathResult = document.evaluate('//descendant::text()[last()]', scratch);
-        const lastTextNode = xpathResult.iterateNext();
-
-        if (!lastTextNode) {
-            return html;
+        // FIXME: Possible for this search to not succeed due to editing races?
+        let node = scratch;
+        for (let i of nodePath.split('.')) {
+            node = node.childNodes[parseInt(i, 10)];
         }
 
-        return [scratch, lastTextNode];
+        return [scratch, node];
     }
 
-    injectedWithPostfix(html, postfix) {
-        if (!postfix) {
+    injectedWithSuggestion(html, suggestion, suggestionNodePath) {
+        if (!suggestion) {
             return html;
         }
 
-        const [scratch, lastTextNode] = this.parseAndFindLastTextNode(html);
+        const [scratch, textNode] = this.parseAndFindNode(html, suggestionNodePath);
 
-        if (!lastTextNode) {
+        if (!textNode) {
             return html;
         }
 
-        lastTextNode.parentNode.insertAdjacentHTML('beforeend', `<span contenteditable="false" class="postfix">${postfix}</span>`);
+        textNode.parentNode.insertAdjacentHTML('beforeend', `<span contenteditable="false" class="suggestion">${suggestion}</span>`);
         return scratch.innerHTML;
     }
 
     acceptOption(e) {
-        const acceptedPostfix = this.props.postfix;
-        if (!acceptedPostfix) {
+        if (!this.props.suggestion) {
             return;
         }
 
-        const [scratch, lastTextNode] = this.parseAndFindLastTextNode(this.props.text);
-        lastTextNode.textContent += acceptedPostfix;
+        const [scratch, node] = this.parseAndFindNode(this.props.text, this.props.suggestionNodePath);
+        node.textContent += this.props.suggestion;
 
         this.props.updateText(scratch.innerHTML);
     }
@@ -110,7 +161,7 @@ class Main extends React.Component {
                             return;
                         }
                         if (returnKey.includes(e.keyCode)) {
-                            this.props.clearPostfix();
+                            this.props.clearSuggestion();
                             return;
                         }
                         this.startFetchSuggestionsTimer();
@@ -118,9 +169,9 @@ class Main extends React.Component {
                             this.acceptOption(e);
                             e.preventDefault();
                         }
-                        this.props.clearPostfix();
+                        this.props.clearSuggestion();
                     }}
-                    html={this.injectedWithPostfix(this.props.text, this.props.postfix)}
+                    html={this.injectedWithSuggestion(this.props.text, this.props.suggestion, this.props.suggestionNodePath)}
                     innerRef={this.contentEditableRef}
                 />
                 <hr />
@@ -137,7 +188,7 @@ class Main extends React.Component {
 
 Main.propTypes = {
     text: PropTypes.string.isRequired,
-    postfix: PropTypes.string,
+    suggestion: PropTypes.string,
     startOffset: PropTypes.number,
     endOffset: PropTypes.number,
     updateText: PropTypes.func.isRequired,

@@ -41,7 +41,7 @@ div[contenteditable="true"] {
   color: #111;
 }
 
-div[contenteditable="true"] span.postfix {
+div[contenteditable="true"] span.suggestion {
   color: #999;
 }
 
