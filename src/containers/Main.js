@@ -2,12 +2,12 @@ import { compose } from 'redux';
 import { connect } from 'react-redux';
 
 import { updateText, fetchSuggestions, clearPostfix } from '../actions/textActions';
-import { humanText } from '../selectors/writing';
+import { textLastSentence } from '../selectors/writing';
 import Main from '../components/Main';
 
 const mapStateToProps = state => ({
     text: state.writing.text,
-    humanText: humanText(state),
+    textLastSentence: textLastSentence(state),
     postfix: state.writing.postfix
 });
 

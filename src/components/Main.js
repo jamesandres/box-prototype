@@ -15,8 +15,8 @@ class Main extends React.Component {
 
     fetchSuggestionsTimer() {
         const fetchSuggestionsClosure = (() => () => {
-            if (this.props.humanText) {
-                this.props.fetchSuggestions(this.props.humanText, this.state.token);
+            if (this.props.textLastSentence) {
+                this.props.fetchSuggestions(this.props.textLastSentence, this.state.token);
             }
         })();
         return setTimeout(fetchSuggestionsClosure, 200);

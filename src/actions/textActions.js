@@ -1,3 +1,5 @@
+import { textLastSentence } from '../selectors/writing';
+
 const updatePostfixAction = (suggestion) => ({
     type: 'UPDATE_POSTFIX',
     postfix: suggestion
@@ -21,9 +23,9 @@ const abandonSuggestionsAction = (reason) => ({
     reason: reason
 });
 
-export const fetchSuggestions = (text, token) =>
+export const fetchSuggestions = (lastSentence, token) =>
     async (dispatch, getState) => {
-        const escapedText = encodeURIComponent(text);
+        const escapedText = encodeURIComponent(lastSentence);
         const escapedToken = encodeURIComponent(token);
         fetch(`http://localhost:8010/suggest?q=${escapedText}&token=${escapedToken}`)
             .catch(e => {
@@ -33,18 +35,18 @@ export const fetchSuggestions = (text, token) =>
             .then(response => response.json())
             .then(responseJson => {
                 if (!responseJson.suggestions || responseJson.suggestions.length <= 0) {
-                    dispatch(abandonSuggestionsAction(`There are no suggestions for ${JSON.stringify(text)}`));
+                    dispatch(abandonSuggestionsAction(`There are no suggestions for ${JSON.stringify(lastSentence)}`));
                     return;
                 }
                 const { suggestion } = responseJson.suggestions[0];
-                const currentText = getState().writing.text;
+                const currentLastSentence = textLastSentence(getState());
 
-                if (!suggestion.startsWith(currentText)) {
-                    dispatch(abandonSuggestionsAction(`User changed text since suggestion fetched! was: ${JSON.stringify(text)}; now is: ${JSON.stringify(currentText)}`));
+                if (!suggestion.startsWith(currentLastSentence)) {
+                    dispatch(abandonSuggestionsAction(`User changed text since suggestion fetched! was: ${JSON.stringify(lastSentence)}; now is: ${JSON.stringify(currentLastSentence)}`));
                     return;
                 }
 
-                const newPostfix = suggestion.slice(text.length);
+                const newPostfix = suggestion.slice(lastSentence.length);
 
                 dispatch(updatePostfixAction(newPostfix));
             })
