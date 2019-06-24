@@ -3,14 +3,97 @@ import PropTypes from 'prop-types';
 import ContentEditable from 'react-contenteditable';
 
 
+function encodeDOMPath(root, node, stack=[]) {
+    if (!root || !node) {
+        return '';
+    }
+    if (node === root) {
+        return stack.join('.');
+    }
+
+    for (const i in node.parentNode.childNodes) {
+        const child = node.parentNode.childNodes[i];
+        if (child === node) {
+            stack.unshift(i);
+            break;
+        }
+    }
+
+    return encodeDOMPath(root, node.parentNode, stack);
+}
+
+function removeSuggestionsSpan(html) {
+    let scratch = document.createElement('div');
+    scratch.innerHTML = html;
+    const xpathResult = document.evaluate('//span[@contenteditable="false"]', scratch);
+    let node, nodes = [];
+    // Annoyingly can't delete the nodes on the initial iteration as mutated XPathResults
+    // cannot be iterated.
+    while (node = xpathResult.iterateNext()) {
+        nodes.push(node);
+    }
+    for (node of nodes) {
+        node.remove();
+    }
+    return scratch.innerHTML;
+}
+
+function parseAndFindNode(html, nodePath) {
+    let scratch = document.createElement('div');
+    scratch.innerHTML = html;
+
+    const node = findNode(scratch, nodePath);
+
+    return [scratch, node];
+}
+
+function findNode(root, nodePath) {
+    // FIXME: Possible for this search to not succeed due to editing races?
+    let node = root;
+    for (let i of nodePath.split('.')) {
+        node = node.childNodes[parseInt(i, 10)];
+    }
+    return node;
+}
+
+function injectSuggestionIntoDOM(root, suggestion, suggestionNodePath) {
+    const textNode = findNode(root, suggestionNodePath);
+
+    if (!textNode) {
+        return;
+    }
+
+    // FIXME: Being lazy and not creating my DOM nodes one bit at a time.
+    let scratch = document.createElement('div');
+    scratch.innerHTML = `<span contenteditable="false" class="suggestion">${suggestion}</span>`;
+    // insertBefore in order to potentially insert between nodes. For example in "Hi,
+    // thanks<br><br>" if the cursor is just after "thanks" but before the breaks it's important
+    // the suggestions appear in line with "thanks" and not jumped down two lines.
+    textNode.parentNode.insertBefore(scratch.firstChild, textNode.nextSibling);
+}
+
+
 class Main extends React.Component {
     constructor() {
         super();
         this.contentEditableRef = React.createRef();
         this.state = {
             fetchSuggestionsTimer: null,
-            token: "o6IDWS2kX1Q9PWiUEOz5pYNZqL/ZrALQ/JU93KkiO/6WjRCpql9169J2m4PsKuNaL9tNSQlQ5QFjOOGH4qHIXFRimqpNJeQBF6n/vN/0LeUsjpUHWqCnp80Cs4FFArCK83kpoUd9RW+dwFhl0heM7GcXupC0"
+            token: "1PwCELEi4UtTRiUKsrjEtSb4dFwSx6zaSWnQkjHYSCQHjCkWMgp6uZBGDYrbK0GrI5sbCRzhTcAydjr3oAXSZ4f3GWame5/UILIGXFX1JSudwi5KksjK6LqpMtl4ZFKRCWUU48q3z3opdHrgjZOKCyeFziWn"
         };
+    }
+
+    componentDidUpdate() {
+        if (this.props.suggestion) {
+            // Yes, this is a little crazy. But maybe it's crazy awesome? The idea is to entirely
+            // hide the suggestion span from the underlying <ContentEditable> component. The
+            // advantage of that is ContentEditable has a nasty habit of moving the caret to the
+            // end of the last text node (see: their function replaceCaret) on componentDidUpdate.
+            // However ContentEditable also implements shouldComponentUpdate and it largely uses
+            // an internal bit of state `this.lastHtml` to track if the component has been
+            // programmatically updated.
+            injectSuggestionIntoDOM(this.contentEditableRef.current, this.props.suggestion, this.props.suggestionNodePath);
+        }
     }
 
     fetchSuggestionsTimer() {
@@ -42,7 +125,7 @@ class Main extends React.Component {
         }
 
         return [range.startContainer.textContent,
-                this.encodeDOMPath(this.contentEditableRef.current, range.startContainer)];
+                encodeDOMPath(this.contentEditableRef.current, range.startContainer)];
     }
 
     lastSentence() {
@@ -56,7 +139,7 @@ class Main extends React.Component {
             return ['', '0'];
         }
         return [lastTextNode.textContent,
-                this.encodeDOMPath(scratch, lastTextNode)];
+                encodeDOMPath(scratch, lastTextNode)];
     }
 
     getCurrentRange() {
@@ -65,81 +148,11 @@ class Main extends React.Component {
         }
     }
 
-    encodeDOMPath(root, node, stack=[]) {
-        if (!root || !node) {
-            return '';
-        }
-        if (node === root) {
-            return stack.join('.');
-        }
-
-        for (const i in node.parentNode.childNodes) {
-            const child = node.parentNode.childNodes[i];
-            if (child === node) {
-                stack.unshift(i);
-                break;
-            }
-        }
-
-        return this.encodeDOMPath(root, node.parentNode, stack);
-    }
-
     textChange(e) {
-        const newText = this.removeSuggestionsSpan(e.target.value);
+        const newText = removeSuggestionsSpan(e.target.value);
         if (newText !== this.props.text) {
             this.props.updateText(newText);
         }
-    }
-
-    removeSuggestionsSpan(html) {
-        let scratch = document.createElement('div');
-        scratch.innerHTML = html;
-        const xpathResult = document.evaluate('//span[@contenteditable="false"]', scratch);
-        let node, nodes = [];
-        // Annoyingly can't delete the nodes on the initial iteration as mutated XPathResults
-        // cannot be iterated.
-        while (node = xpathResult.iterateNext()) {
-            nodes.push(node);
-        }
-        for (node of nodes) {
-            node.remove();
-        }
-        return scratch.innerHTML;
-    }
-
-    parseAndFindNode(html, nodePath) {
-        let scratch = document.createElement('div');
-        scratch.innerHTML = html;
-
-        // FIXME: Possible for this search to not succeed due to editing races?
-        let node = scratch;
-        for (let i of nodePath.split('.')) {
-            node = node.childNodes[parseInt(i, 10)];
-        }
-
-        return [scratch, node];
-    }
-
-    injectedWithSuggestion(html, suggestion, suggestionNodePath) {
-        if (!suggestion) {
-            return html;
-        }
-
-        const [scratch, textNode] = this.parseAndFindNode(html, suggestionNodePath);
-
-        if (!textNode) {
-            return html;
-        }
-
-        // FIXME: Being lazy and not creating my DOM nodes one bit at a time.
-        let scratch2 = document.createElement('div');
-        scratch2.innerHTML = `<span contenteditable="false" class="suggestion">${suggestion}</span>`;
-        // insertBefore in order to potentially insert between nodes. For example in "Hi,
-        // thanks<br><br>" if the cursor is just after "thanks" but before the breaks it's important
-        // the suggestions appear in line with "thanks" and not jumped down two lines.
-        textNode.parentNode.insertBefore(scratch2.firstChild, textNode.nextSibling);
-
-        return scratch.innerHTML;
     }
 
     acceptOption(e) {
@@ -147,7 +160,7 @@ class Main extends React.Component {
             return;
         }
 
-        const [scratch, node] = this.parseAndFindNode(this.props.text, this.props.suggestionNodePath);
+        const [scratch, node] = parseAndFindNode(this.props.text, this.props.suggestionNodePath);
         node.textContent += this.props.suggestion;
 
         this.props.updateText(scratch.innerHTML);
@@ -178,7 +191,7 @@ class Main extends React.Component {
                         }
                         this.props.clearSuggestion();
                     }}
-                    html={this.injectedWithSuggestion(this.props.text, this.props.suggestion, this.props.suggestionNodePath)}
+                    html={this.props.text}
                     innerRef={this.contentEditableRef}
                 />
                 <hr />
