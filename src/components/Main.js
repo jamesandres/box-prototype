@@ -163,7 +163,18 @@ class Main extends React.Component {
         const [scratch, node] = parseAndFindNode(this.props.text, this.props.suggestionNodePath);
         node.textContent += this.props.suggestion;
 
+        // Slightly strange.. here we programmatically insert the updated text into the
+        // ContentEditable as though it had been typed by hand. Then we poke the underlying event
+        // handler. This helps ContentEditable to keep track of it's state and avoids it performing
+        // a componentDidUpdate, which in turn avoids their replaceCaret function runnings, which
+        // avoids the caret zooming to the end of the last text node.
+        this.contentEditableRef.current.innerHTML = scratch.innerHTML;
         this.props.updateText(scratch.innerHTML);
+
+        // !!! GOT TO HERE
+        // !!! using this approach i've successfully got ContentEditable to not fire its
+        // !!! replaceCaret function. However now the caret is zooming to position 0,0 :-(
+        // !!! it seems React's rendering is doing this. Unclear at the moment.....
     }
 
     render() {
