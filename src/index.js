@@ -11,7 +11,7 @@ import rootReducer from './reducers';
 
 
 
-const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
+const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__({name: 'Autocomplete UI Sandbox'}) || compose;
 const store = createStore(rootReducer,
                           composeEnhancers(applyMiddleware(thunk)));
 

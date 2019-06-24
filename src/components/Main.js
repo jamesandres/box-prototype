@@ -9,7 +9,7 @@ class Main extends React.Component {
         this.contentEditableRef = React.createRef();
         this.state = {
             fetchSuggestionsTimer: null,
-            token: "VPBmhXXIFfA/Mu5vTSyWiZtJYT7TIfK8TuFHOgQ0FLa1Qjl1qbUBbstODme5znEwDUK7FncrxQdzEFQYVaMqBGGM6L47MADA3a59b9rAdqbWDvotpOPTMePhHtZDx7CimCAeDntOA9fNRdSwNhahjERX/6Sw"
+            token: "o6IDWS2kX1Q9PWiUEOz5pYNZqL/ZrALQ/JU93KkiO/6WjRCpql9169J2m4PsKuNaL9tNSQlQ5QFjOOGH4qHIXFRimqpNJeQBF6n/vN/0LeUsjpUHWqCnp80Cs4FFArCK83kpoUd9RW+dwFhl0heM7GcXupC0"
         };
     }
 
@@ -131,7 +131,14 @@ class Main extends React.Component {
             return html;
         }
 
-        textNode.parentNode.insertAdjacentHTML('beforeend', `<span contenteditable="false" class="suggestion">${suggestion}</span>`);
+        // FIXME: Being lazy and not creating my DOM nodes one bit at a time.
+        let scratch2 = document.createElement('div');
+        scratch2.innerHTML = `<span contenteditable="false" class="suggestion">${suggestion}</span>`;
+        // insertBefore in order to potentially insert between nodes. For example in "Hi,
+        // thanks<br><br>" if the cursor is just after "thanks" but before the breaks it's important
+        // the suggestions appear in line with "thanks" and not jumped down two lines.
+        textNode.parentNode.insertBefore(scratch2.firstChild, textNode.nextSibling);
+
         return scratch.innerHTML;
     }
 
@@ -179,7 +186,7 @@ class Main extends React.Component {
                     <label>Token:</label>
                     <input type="text"
                            value={this.state.token}
-                           onChange={ (e) => this.setState({"token": e.value}) } />
+                           onChange={ (e) => this.setState({"token": e.target.value}) } />
                 </p>
             </div>
         );
