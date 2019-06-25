@@ -22,10 +22,8 @@ function encodeDOMPath(root, node, stack=[]) {
     return encodeDOMPath(root, node.parentNode, stack);
 }
 
-function removeSuggestionsSpan(html) {
-    let scratch = document.createElement('div');
-    scratch.innerHTML = html;
-    const xpathResult = document.evaluate('//span[@contenteditable="false"]', scratch);
+function removeSuggestionFromDOM(root) {
+    const xpathResult = document.evaluate('//span[@contenteditable="false"]', root);
     let node, nodes = [];
     // Annoyingly can't delete the nodes on the initial iteration as mutated XPathResults
     // cannot be iterated.
@@ -35,6 +33,12 @@ function removeSuggestionsSpan(html) {
     for (node of nodes) {
         node.remove();
     }
+}
+
+function removeSuggestionsSpan(html) {
+    let scratch = document.createElement('div');
+    scratch.innerHTML = html;
+    removeSuggestionFromDOM(scratch)
     return scratch.innerHTML;
 }
 
@@ -160,21 +164,21 @@ class Main extends React.Component {
             return;
         }
 
-        const [scratch, node] = parseAndFindNode(this.props.text, this.props.suggestionNodePath);
-        node.textContent += this.props.suggestion;
+        // The point behind using the 'insertHTML' command here is it acts as though the user
+        // actually typed the text. This bubbles the events up "from the bottom" so to speak which
+        // keeps ContentEditable in the loop so it will update its `lastHtml` state accurately.
+        // In turn this helps it avoid doing an unnecessary component update see its implementation
+        // of componentShouldUpdate.
 
-        // Slightly strange.. here we programmatically insert the updated text into the
-        // ContentEditable as though it had been typed by hand. Then we poke the underlying event
-        // handler. This helps ContentEditable to keep track of it's state and avoids it performing
-        // a componentDidUpdate, which in turn avoids their replaceCaret function runnings, which
-        // avoids the caret zooming to the end of the last text node.
-        this.contentEditableRef.current.innerHTML = scratch.innerHTML;
-        this.props.updateText(scratch.innerHTML);
+        // FIXME: This does not work in IE 11 or so the internet tells me.
+        document.execCommand('insertHTML', false, this.props.suggestion)
+    }
 
-        // !!! GOT TO HERE
-        // !!! using this approach i've successfully got ContentEditable to not fire its
-        // !!! replaceCaret function. However now the caret is zooming to position 0,0 :-(
-        // !!! it seems React's rendering is doing this. Unclear at the moment.....
+    pasteAsPlainText(event) {
+        event.preventDefault()
+
+        const text = event.clipboardData.getData('text/plain')
+        document.execCommand('insertHTML', false, text)
     }
 
     render() {
@@ -200,8 +204,10 @@ class Main extends React.Component {
                             this.acceptOption(e);
                             e.preventDefault();
                         }
+                        removeSuggestionFromDOM(this.contentEditableRef.current)
                         this.props.clearSuggestion();
                     }}
+                    onPaste={this.pasteAsPlainText}
                     html={this.props.text}
                     innerRef={this.contentEditableRef}
                 />
