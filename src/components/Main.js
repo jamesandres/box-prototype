@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import ContentEditable from 'react-contenteditable';
+import ContentEditable from 'react-sane-contenteditable';
 
 
 function encodeDOMPath(root, node, stack=[]) {
@@ -76,7 +76,7 @@ function injectSuggestionIntoDOM(root, suggestion, suggestionNodePath) {
 class Main extends React.Component {
     constructor() {
         super();
-        this.contentEditableRef = React.createRef();
+        this.contentEditableRef = null;
         this.state = {
             fetchSuggestionsTimer: null,
             token: "1PwCELEi4UtTRiUKsrjEtSb4dFwSx6zaSWnQkjHYSCQHjCkWMgp6uZBGDYrbK0GrI5sbCRzhTcAydjr3oAXSZ4f3GWame5/UILIGXFX1JSudwi5KksjK6LqpMtl4ZFKRCWUU48q3z3opdHrgjZOKCyeFziWn"
@@ -92,7 +92,7 @@ class Main extends React.Component {
             // However ContentEditable also implements shouldComponentUpdate and it largely uses
             // an internal bit of state `this.lastHtml` to track if the component has been
             // programmatically updated.
-            injectSuggestionIntoDOM(this.contentEditableRef.current, this.props.suggestion, this.props.suggestionNodePath);
+            injectSuggestionIntoDOM(this.contentEditableRef, this.props.suggestion, this.props.suggestionNodePath);
         }
     }
 
@@ -125,12 +125,12 @@ class Main extends React.Component {
         }
 
         return [range.startContainer.textContent,
-                encodeDOMPath(this.contentEditableRef.current, range.startContainer)];
+                encodeDOMPath(this.contentEditableRef, range.startContainer)];
     }
 
     lastSentence() {
         let scratch = document.createElement('div');
-        scratch.innerHTML = this.contentEditableRef.current.innerHTML;
+        scratch.innerHTML = this.contentEditableRef.innerHTML;
 
         const xpathResult = document.evaluate('//descendant::text()[last()]', scratch);
         const lastTextNode = xpathResult.iterateNext();
@@ -149,7 +149,7 @@ class Main extends React.Component {
     }
 
     textChange(e) {
-        const newText = removeSuggestionsSpan(e.target.value);
+        const newText = removeSuggestionsSpan(this.contentEditableRef.innerHTML);
         if (newText !== this.props.text) {
             this.props.updateText(newText);
         }
@@ -168,7 +168,7 @@ class Main extends React.Component {
         // handler. This helps ContentEditable to keep track of it's state and avoids it performing
         // a componentDidUpdate, which in turn avoids their replaceCaret function runnings, which
         // avoids the caret zooming to the end of the last text node.
-        this.contentEditableRef.current.innerHTML = scratch.innerHTML;
+        // this.contentEditableRef.innerHTML = scratch.innerHTML;
         this.props.updateText(scratch.innerHTML);
 
         // !!! GOT TO HERE
@@ -181,6 +181,7 @@ class Main extends React.Component {
         return (
             <div>
                 <ContentEditable
+                    multiLine={true}
                     onChange={ (e) => this.textChange(e) }
                     onKeyDown={ (e) => {
                         // TODO: Redo this key handling, new shit has come to light!
@@ -202,8 +203,8 @@ class Main extends React.Component {
                         }
                         this.props.clearSuggestion();
                     }}
-                    html={this.props.text}
-                    innerRef={this.contentEditableRef}
+                    content={this.props.text}
+                    innerRef={(el) => this.contentEditableRef = el}
                 />
                 <hr />
                 <p>
