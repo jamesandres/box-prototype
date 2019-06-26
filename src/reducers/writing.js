@@ -5,6 +5,8 @@ const initialState = {
 };
 
 const writing = (state = initialState, action) => {
+    // For debugging in IE *shudder*
+    (window.actions ? window.actions : window.actions = []).push([state, action]);
     switch (action.type) {
         case 'UPDATE_TEXT': {
             return {

@@ -19,6 +19,9 @@ const composeEnhancers =
 const store = createStore(rootReducer,
                           composeEnhancers(applyMiddleware(thunk)));
 
+// For debugging in IE *shudder*
+window.store = store;
+
 ReactDOM.render(
     <Provider store={store}>
         <App />

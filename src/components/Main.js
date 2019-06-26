@@ -23,17 +23,31 @@ function encodeDOMPath(root, node, stack=[]) {
 }
 
 function removeSuggestionFromDOM(root) {
-    const xpathResult = document.evaluate('//span[@contenteditable="false"]', root);
-    let node, nodes = [];
-    // Annoyingly can't delete the nodes on the initial iteration as mutated XPathResults
-    // cannot be iterated.
-    while (node = xpathResult.iterateNext()) {
-        nodes.push(node);
-    }
-    for (node of nodes) {
+    const nodeList = root.querySelectorAll('span[contenteditable="false"]')
+    for (let node of nodeList) {
         node.remove();
     }
 }
+
+function findLastTextNode(root) {
+    for (let node of root.childNodes.reverse()) {
+        if (node.nodeType == Node.TEXT_NODE) {
+            return node;
+        } else if (node.childNodes.length > 0) {
+            return findLastTextNode(node);
+        }
+    }
+}
+
+function lastSentence(root) {
+    const lastTextNode = findLastTextNode(root);
+
+    if (!lastTextNode) {
+        return ['', '0'];
+    }
+    return [lastTextNode.textContent, encodeDOMPath(root, lastTextNode)];
+}
+
 
 function removeSuggestionsSpan(html) {
     let scratch = document.createElement('div');
@@ -121,29 +135,13 @@ class Main extends React.Component {
     currentSentence() {
         const range = this.getCurrentRange();
 
-        if (!range) {
-            return this.lastSentence();
-        } else if (range.startContainer.nodeType !== Node.TEXT_NODE) {
+        if (!range || range.startContainer.nodeType !== Node.TEXT_NODE) {
             // FIXME: Probably this causes grief with selection (ie: startContainer !== endContainer)
-            return this.lastSentence();
+            return lastSentence(this.contentEditableRef.current);
         }
 
         return [range.startContainer.textContent,
                 encodeDOMPath(this.contentEditableRef.current, range.startContainer)];
-    }
-
-    lastSentence() {
-        let scratch = document.createElement('div');
-        scratch.innerHTML = this.contentEditableRef.current.innerHTML;
-
-        const xpathResult = document.evaluate('//descendant::text()[last()]', scratch);
-        const lastTextNode = xpathResult.iterateNext();
-
-        if (!lastTextNode) {
-            return ['', '0'];
-        }
-        return [lastTextNode.textContent,
-                encodeDOMPath(scratch, lastTextNode)];
     }
 
     getCurrentRange() {
