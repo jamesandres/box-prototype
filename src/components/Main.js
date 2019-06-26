@@ -30,7 +30,8 @@ function removeSuggestionFromDOM(root) {
 }
 
 function findLastTextNode(root) {
-    for (let node of root.childNodes.reverse()) {
+    const reversedNodeList = Array.from(root.childNodes).reverse();
+    for (let node of reversedNodeList) {
         if (node.nodeType == Node.TEXT_NODE) {
             return node;
         } else if (node.childNodes.length > 0) {
@@ -97,7 +98,7 @@ class Main extends React.Component {
         this.contentEditableRef = React.createRef();
         this.state = {
             fetchSuggestionsTimer: null,
-            token: "X5ACx0rk84MU8EDZp4KmG8BflUteh2DyvEi4RdP7m1g9cCzqZsZ2hpf4EdYjQsCBom6MCTy8Fbnp/R+SgE0gkli6jJGJq9BcCcZltyxKhA8ySlbW9CCt5b9syiJu8P2xrttJw/bdkKDS1wkkslXMRNykZuFM"
+            token: "mS6Os7LjvlJ6OI7uYjuChV4cUo7KyR9SJoyuQcmQGsMehb711Ybjy+BO8mdN16lgFj5el6z+GeyCLQehZUw7q7XeRf0WagXZJ4aTBof+dKf2rqrCarIve65jbOyce8PC/BPGFxrlpNQFYaij00rnMQnDbPXv"
         };
     }
 
@@ -169,14 +170,14 @@ class Main extends React.Component {
         // of componentShouldUpdate.
 
         // FIXME: This does not work in IE 11 or so the internet tells me.
-        document.execCommand('insertHTML', false, this.props.suggestion)
+        document.execCommand('insertText', false, this.props.suggestion)
     }
 
     pasteAsPlainText(event) {
         event.preventDefault()
 
         const text = event.clipboardData.getData('text/plain')
-        document.execCommand('insertHTML', false, text)
+        document.execCommand('insertText', false, text)
     }
 
     render() {
