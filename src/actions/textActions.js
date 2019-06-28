@@ -22,12 +22,12 @@ const abandonSuggestionsAction = (reason) => ({
     reason: reason
 });
 
-export const fetchSuggestions = (sentence, token) =>
+export const fetchSuggestions = (sentence, suggestionBaseURL, token) =>
     async (dispatch, getState) => {
         const [text, nodePath] = sentence;
         const escapedText = encodeURIComponent(text);
         const escapedToken = encodeURIComponent(token);
-        fetch(`http://localhost:8010/suggest?q=${escapedText}&token=${escapedToken}`)
+        fetch(`${suggestionBaseURL}/suggest?q=${escapedText}&token=${escapedToken}`)
             .catch(e => {
                 dispatch(fetchSuggestionsErrorAction(e.toString()));
                 console.error(e);

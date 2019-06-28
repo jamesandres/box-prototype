@@ -41,6 +41,13 @@ div[contenteditable="true"] {
   color: #111;
 }
 
+/* IE11: Explorer uses <p> tags in contenteditable whereas other browsers use <div>.
+         let's make those p's look like div's */
+div[contenteditable="true"] p {
+    margin: 0;
+}
+
+
 div[contenteditable="true"] span.suggestion {
   color: #999;
 }

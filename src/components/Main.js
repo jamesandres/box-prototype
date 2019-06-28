@@ -25,11 +25,16 @@ function encodeDOMPath(root, node, stack=[]) {
 function removeSuggestionFromDOM(root) {
     const nodeList = root.querySelectorAll('span[contenteditable="false"]')
     for (let node of nodeList) {
-        node.remove();
+        // IE11: Doesn't have Element.remove(), fu IE.
+        node.parentNode.removeChild(node);
     }
 }
 
 function findLastTextNode(root) {
+    // IE11: This is null sometimes in IE. No idea why.
+    if (!root) {
+        return;
+    }
     const reversedNodeList = Array.from(root.childNodes).reverse();
     for (let node of reversedNodeList) {
         if (node.nodeType == Node.TEXT_NODE) {
@@ -98,11 +103,13 @@ class Main extends React.Component {
         this.contentEditableRef = React.createRef();
         this.state = {
             fetchSuggestionsTimer: null,
-            token: "mS6Os7LjvlJ6OI7uYjuChV4cUo7KyR9SJoyuQcmQGsMehb711Ybjy+BO8mdN16lgFj5el6z+GeyCLQehZUw7q7XeRf0WagXZJ4aTBof+dKf2rqrCarIve65jbOyce8PC/BPGFxrlpNQFYaij00rnMQnDbPXv"
+            token: "9s5Eubde244rXp+7Hz4Ng8rW5QFXUzdQ2dHvs3z1g7WZSgHdFjh9n0jlHab3KoPykjkyh40AkokJHE6fybX2BepGUNOLkhwjlavkWIupLxRbP+yQAh7rbPUPoVBrhaiG/62StI7ciu2n9aD+Ko6yrYUei9h8",
+            suggestionBaseURL: 'http://192.168.1.215:8010'
         };
     }
 
     componentDidUpdate() {
+        console.log('Main::cDU');
         if (this.props.suggestion) {
             // Yes, this is a little crazy. But maybe it's crazy awesome? The idea is to entirely
             // hide the suggestion span from the underlying <ContentEditable> component. The
@@ -115,10 +122,21 @@ class Main extends React.Component {
         }
     }
 
+    // IE11: Apparently React's default sCU can't realise the timeout changing isn't a good reason
+    //       to perform a full re-render. So here we diff all except this.state.fetchSuggestionsTimer
+    shouldComponentUpdate(nextProps, nextState) {
+        return (this.props.text !== nextProps.text
+             || this.props.suggestion !== nextProps.suggestion
+             || this.props.suggestionNodePath !== nextProps.suggestionNodePath
+             || this.state.token !== nextState.token
+             || this.state.suggestionBaseURL !== nextState.suggestionBaseURL);
+    }
+
     fetchSuggestionsTimer() {
         const fetchSuggestionsClosure = (() => () => {
             if (this.props.text) {
-                this.props.fetchSuggestions(this.currentSentence(), this.state.token);
+                this.props.fetchSuggestions(this.currentSentence(),
+                                            this.state.suggestionBaseURL, this.state.token);
             }
         })();
         return setTimeout(fetchSuggestionsClosure, 200);
@@ -212,9 +230,17 @@ class Main extends React.Component {
                 />
                 <hr />
                 <p>
+                    <label>Suggestion Base URL:</label>
+                    <input type="url"
+                           value={this.state.suggestionBaseURL}
+                           style={{width: 400}}
+                           onChange={ (e) => this.setState({"suggestionBaseURL": e.target.value}) } />
+                </p>
+                <p>
                     <label>Token:</label>
                     <input type="text"
                            value={this.state.token}
+                           style={{width: 400}}
                            onChange={ (e) => this.setState({"token": e.target.value}) } />
                 </p>
             </div>
