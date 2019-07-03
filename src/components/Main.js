@@ -103,8 +103,8 @@ class Main extends React.Component {
         this.contentEditableRef = React.createRef();
         this.state = {
             fetchSuggestionsTimer: null,
-            token: "9s5Eubde244rXp+7Hz4Ng8rW5QFXUzdQ2dHvs3z1g7WZSgHdFjh9n0jlHab3KoPykjkyh40AkokJHE6fybX2BepGUNOLkhwjlavkWIupLxRbP+yQAh7rbPUPoVBrhaiG/62StI7ciu2n9aD+Ko6yrYUei9h8",
-            suggestionBaseURL: 'http://192.168.1.215:8010'
+            token: "NE8VWpsnfJ/RqF2IxboGeo4UIgiTsDL/ivXIC58LQwBnWIyw0nMp6QCaRnSa/f7LmJNWxVfFqHM0+/QrestN+tYp48Pi94651s9+HzOiVsdhmpOrkzw5TybOje3k7QAZk3PsOR1wSLoMwYl3twtM4YuQybsm",
+            suggestionBaseURL: 'http://localhost:8010'
         };
     }
 

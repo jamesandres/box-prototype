@@ -22,9 +22,8 @@ const abandonSuggestionsAction = (reason) => ({
     reason: reason
 });
 
-export const fetchSuggestions = (sentence, suggestionBaseURL, token) =>
+export const fetchSuggestions = (text, suggestionBaseURL, token) =>
     async (dispatch, getState) => {
-        const [text, nodePath] = sentence;
         const escapedText = encodeURIComponent(text);
         const escapedToken = encodeURIComponent(token);
         fetch(`${suggestionBaseURL}/suggest?q=${escapedText}&token=${escapedToken}`)
@@ -49,7 +48,7 @@ export const fetchSuggestions = (sentence, suggestionBaseURL, token) =>
 
                 const newSuggestion = suggestion.slice(text.length);
 
-                dispatch(updateSuggestionAction(newSuggestion, nodePath));
+                dispatch(updateSuggestionAction(newSuggestion));
             })
     };
 
