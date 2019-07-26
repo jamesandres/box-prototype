@@ -1,117 +1,248 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import ContentEditable from 'react-contenteditable';
-import striptags from 'striptags';
+
+
+function encodeDOMPath(root, node, stack=[]) {
+    if (!root || !node) {
+        return '';
+    }
+    if (node === root) {
+        return stack.join('.');
+    }
+
+    for (const i in node.parentNode.childNodes) {
+        const child = node.parentNode.childNodes[i];
+        if (child === node) {
+            stack.unshift(i);
+            break;
+        }
+    }
+
+    return encodeDOMPath(root, node.parentNode, stack);
+}
+
+function removeSuggestionFromDOM(root) {
+    const nodeList = root.querySelectorAll('span[contenteditable="false"]')
+    for (let node of nodeList) {
+        // IE11: Doesn't have Element.remove(), fu IE.
+        node.parentNode.removeChild(node);
+    }
+}
+
+function findLastTextNode(root) {
+    // IE11: This is null sometimes in IE. No idea why.
+    if (!root) {
+        return;
+    }
+    const reversedNodeList = Array.from(root.childNodes).reverse();
+    for (let node of reversedNodeList) {
+        if (node.nodeType == Node.TEXT_NODE) {
+            return node;
+        } else if (node.childNodes.length > 0) {
+            return findLastTextNode(node);
+        }
+    }
+}
+
+function lastSentence(root) {
+    const lastTextNode = findLastTextNode(root);
+
+    if (!lastTextNode) {
+        return ['', '0'];
+    }
+    return [lastTextNode.textContent, encodeDOMPath(root, lastTextNode)];
+}
+
+
+function removeSuggestionsSpan(html) {
+    let scratch = document.createElement('div');
+    scratch.innerHTML = html;
+    removeSuggestionFromDOM(scratch)
+    return scratch.innerHTML;
+}
+
+function parseAndFindNode(html, nodePath) {
+    let scratch = document.createElement('div');
+    scratch.innerHTML = html;
+
+    const node = findNode(scratch, nodePath);
+
+    return [scratch, node];
+}
+
+function findNode(root, nodePath) {
+    // FIXME: Possible for this search to not succeed due to editing races?
+    let node = root;
+    for (let i of nodePath.split('.')) {
+        node = node.childNodes[parseInt(i, 10)];
+    }
+    return node;
+}
+
+function injectSuggestionIntoDOM(root, suggestion, suggestionNodePath) {
+    const textNode = findNode(root, suggestionNodePath);
+
+    if (!textNode) {
+        return;
+    }
+
+    // FIXME: Being lazy and not creating my DOM nodes one bit at a time.
+    let scratch = document.createElement('div');
+    scratch.innerHTML = `<span contenteditable="false" class="suggestion">${suggestion}</span>`;
+    // insertBefore in order to potentially insert between nodes. For example in "Hi,
+    // thanks<br><br>" if the cursor is just after "thanks" but before the breaks it's important
+    // the suggestions appear in line with "thanks" and not jumped down two lines.
+    textNode.parentNode.insertBefore(scratch.firstChild, textNode.nextSibling);
+}
+
 
 class Main extends React.Component {
     constructor() {
         super();
+        this.contentEditableRef = React.createRef();
         this.state = {
-            box: null
+            fetchSuggestionsTimer: null,
+            token: "9s5Eubde244rXp+7Hz4Ng8rW5QFXUzdQ2dHvs3z1g7WZSgHdFjh9n0jlHab3KoPykjkyh40AkokJHE6fybX2BepGUNOLkhwjlavkWIupLxRbP+yQAh7rbPUPoVBrhaiG/62StI7ciu2n9aD+Ko6yrYUei9h8",
+            suggestionBaseURL: 'http://192.168.1.215:8010'
         };
     }
 
-    componentDidUpdate(prevProps) {
-        let selection = window.getSelection();
-        if (selection) {
-            if (this.state.box.firstChild) {
-                let currentStartOffset, currentEndOffset;
-                const currentRange = this.getCurrentRange();
-                if (!currentRange) {
-                    return;
-                }
-
-                currentStartOffset = currentRange.startOffset;
-                currentEndOffset = currentRange.endOffset;
-
-                console.log("componentDidUpdate. props startOffset: ", this.props.startOffset);
-                if (this.props.startOffset !== currentStartOffset || this.props.endOffset !== currentEndOffset) {
-                    const range = document.createRange();
-                    // oh no. box.firstChild.firstChild doesn't exist on initial load but we do need to set the carat to the beginning of the
-                    // box anyway.
-                    const nodeToAlter = this.state.box.firstChild.firstChild ? this.state.box.firstChild.firstChild : this.state.box.firstChild;
-                    range.setStart(nodeToAlter, this.props.startOffset);
-                    range.setEnd(nodeToAlter, this.props.endOffset);
-                    selection.removeAllRanges();
-                    selection.addRange(range);
-                }
-            }
-        } else {
-            console.log("no selection");
+    componentDidUpdate() {
+        console.log('Main::cDU');
+        if (this.props.suggestion) {
+            // Yes, this is a little crazy. But maybe it's crazy awesome? The idea is to entirely
+            // hide the suggestion span from the underlying <ContentEditable> component. The
+            // advantage of that is ContentEditable has a nasty habit of moving the caret to the
+            // end of the last text node (see: their function replaceCaret) on componentDidUpdate.
+            // However ContentEditable also implements shouldComponentUpdate and it largely uses
+            // an internal bit of state `this.lastHtml` to track if the component has been
+            // programmatically updated.
+            injectSuggestionIntoDOM(this.contentEditableRef.current, this.props.suggestion, this.props.suggestionNodePath);
         }
     }
 
-    getCurrentRange() {
-        // this returns 0,0 when the user has just accepted a suggestion. 
-        if (window.getSelection()) {
-            try {
-                return window.getSelection().getRangeAt(0);
-            } catch (IndexSizeError) {
-                return;
+    // IE11: Apparently React's default sCU can't realise the timeout changing isn't a good reason
+    //       to perform a full re-render. So here we diff all except this.state.fetchSuggestionsTimer
+    shouldComponentUpdate(nextProps, nextState) {
+        return (this.props.text !== nextProps.text
+             || this.props.suggestion !== nextProps.suggestion
+             || this.props.suggestionNodePath !== nextProps.suggestionNodePath
+             || this.state.token !== nextState.token
+             || this.state.suggestionBaseURL !== nextState.suggestionBaseURL);
+    }
+
+    fetchSuggestionsTimer() {
+        const fetchSuggestionsClosure = (() => () => {
+            if (this.props.text) {
+                this.props.fetchSuggestions(this.currentSentence(),
+                                            this.state.suggestionBaseURL, this.state.token);
             }
+        })();
+        return setTimeout(fetchSuggestionsClosure, 200);
+    }
+
+    startFetchSuggestionsTimer() {
+        if (this.state.fetchSuggestionsTimer) {
+            clearTimeout(this.state.fetchSuggestionsTimer);
+        }
+        this.setState({
+            fetchSuggestionsTimer: this.fetchSuggestionsTimer()
+        });
+    }
+
+    currentSentence() {
+        const range = this.getCurrentRange();
+
+        if (!range || range.startContainer.nodeType !== Node.TEXT_NODE) {
+            // FIXME: Probably this causes grief with selection (ie: startContainer !== endContainer)
+            return lastSentence(this.contentEditableRef.current);
+        }
+
+        return [range.startContainer.textContent,
+                encodeDOMPath(this.contentEditableRef.current, range.startContainer)];
+    }
+
+    getCurrentRange() {
+        if (window.getSelection()) {
+            return window.getSelection().getRangeAt(0);
         }
     }
 
     textChange(e) {
-        // TODO: ugh. probably render this in the shadow DOM and remove this particular node?
-        let textContent = e.target.value.split(' <span contenteditable=')[0];
-        console.log("pre striptags: ", textContent);
-        textContent = striptags(textContent);
-        console.log("post striptags: ", textContent);
- 
-        const { startOffset, endOffset } = this.getCurrentRange();
-        console.log("textChange - startOffset: ", startOffset);
-        this.props.updateText(textContent, startOffset, endOffset);
-    }
-
-    selectionChange(e) {
-        const { startOffset, endOffset } = this.getCurrentRange();
-        this.props.updateText(this.props.text, startOffset, endOffset);
-    }
-
-    saveBox(node) {
-        if (!this.state.box) {
-            this.setState({
-                box: node
-            });
+        const newText = removeSuggestionsSpan(e.target.value);
+        if (newText !== this.props.text) {
+            this.props.updateText(newText);
         }
     }
 
     acceptOption(e) {
-        const acceptedPostfix = this.props.postfix;
-        if (!acceptedPostfix) {
+        if (!this.props.suggestion) {
             return;
         }
-        
-        const postfixLength = acceptedPostfix.length;
 
-        const text = `${this.props.text} ${acceptedPostfix}`;
-        let { startOffset, endOffset } = this.getCurrentRange();
-        
-        startOffset = startOffset + postfixLength;
-        endOffset = endOffset + postfixLength;
+        // The point behind using the 'insertHTML' command here is it acts as though the user
+        // actually typed the text. This bubbles the events up "from the bottom" so to speak which
+        // keeps ContentEditable in the loop so it will update its `lastHtml` state accurately.
+        // In turn this helps it avoid doing an unnecessary component update see its implementation
+        // of componentShouldUpdate.
 
-        this.props.updateText(text, startOffset, endOffset);
+        // FIXME: This does not work in IE 11 or so the internet tells me.
+        document.execCommand('insertText', false, this.props.suggestion)
     }
-    
+
+    pasteAsPlainText(event) {
+        event.preventDefault()
+
+        const text = event.clipboardData.getData('text/plain')
+        document.execCommand('insertText', false, text)
+    }
+
     render() {
-        const html = `<span>${this.props.text || ''}</span> <span contenteditable="false">${this.props.postfix || ''}</span>`;
         return (
             <div>
                 <ContentEditable
                     onChange={ (e) => this.textChange(e) }
-                    onSelect={ (e) => this.selectionChange(e) }
                     onKeyDown={ (e) => {
-                        if (e.keyCode !== 13) {
+                        // TODO: Redo this key handling, new shit has come to light!
+                        const arrowKeysAndESC = [27, 37, 38, 39, 40];
+                        const returnKey = [13];
+                        const tabKey = [9];
+                        const altCtrlMeta = e.altKey || e.ctrlKey || e.metaKey;
+                        if (arrowKeysAndESC.includes(e.keyCode) || altCtrlMeta) {
                             return;
-                        } else {
+                        }
+                        if (returnKey.includes(e.keyCode)) {
+                            this.props.clearSuggestion();
+                            return;
+                        }
+                        this.startFetchSuggestionsTimer();
+                        if (tabKey.includes(e.keyCode)) {
                             this.acceptOption(e);
                             e.preventDefault();
                         }
+                        removeSuggestionFromDOM(this.contentEditableRef.current)
+                        this.props.clearSuggestion();
                     }}
-                    html={html}
-                    innerRef={ (ref) => this.saveBox(ref) }
+                    onPaste={this.pasteAsPlainText}
+                    html={this.props.text}
+                    innerRef={this.contentEditableRef}
                 />
+                <hr />
+                <p>
+                    <label>Suggestion Base URL:</label>
+                    <input type="url"
+                           value={this.state.suggestionBaseURL}
+                           style={{width: 400}}
+                           onChange={ (e) => this.setState({"suggestionBaseURL": e.target.value}) } />
+                </p>
+                <p>
+                    <label>Token:</label>
+                    <input type="text"
+                           value={this.state.token}
+                           style={{width: 400}}
+                           onChange={ (e) => this.setState({"token": e.target.value}) } />
+                </p>
             </div>
         );
     }
@@ -119,10 +250,11 @@ class Main extends React.Component {
 
 Main.propTypes = {
     text: PropTypes.string.isRequired,
-    postfix: PropTypes.string,
+    suggestion: PropTypes.string,
     startOffset: PropTypes.number,
     endOffset: PropTypes.number,
-    updateText: PropTypes.func.isRequired
+    updateText: PropTypes.func.isRequired,
+    fetchSuggestions: PropTypes.func.isRequired
 };
 
 export default Main;

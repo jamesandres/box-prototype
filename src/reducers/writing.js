@@ -1,25 +1,31 @@
 const initialState = {
     text: '',
-    postfix: null,
-    startOffset: 0,
-    endOffset: 0
+    suggestion: '',
+    suggestionNodePath: '0',
 };
 
 const writing = (state = initialState, action) => {
+    // For debugging in IE *shudder*
+    (window.actions ? window.actions : window.actions = []).push([state, action]);
     switch (action.type) {
         case 'UPDATE_TEXT': {
-            console.log("updating text to " + action.text);
             return {
                 ...state,
-                text: action.text,
-                startOffset: action.startOffset,
-                endOffset: action.endOffset
+                text: action.text
             };
         }
-        case 'UPDATE_POSTFIX': {
+        case 'UPDATE_SUGGESTION': {
             return {
                 ...state,
-                postfix: action.postfix
+                suggestion: action.suggestion,
+                suggestionNodePath: action.suggestionNodePath
+            };
+        }
+        case 'CLEAR_SUGGESTION': {
+            return {
+                ...state,
+                suggestion: initialState.suggestion,
+                suggestionNodePath: initialState.suggestionNodePath
             };
         }
         default: {
