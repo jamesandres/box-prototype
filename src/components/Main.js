@@ -132,6 +132,7 @@ class Main extends React.Component {
              || this.state.suggestionBaseURL !== nextState.suggestionBaseURL);
     }
 
+    // Idea 1: After stop typing for a short while fetch the suggestion.
     fetchSuggestionsTimer() {
         const fetchSuggestionsClosure = (() => () => {
             if (this.props.text) {
@@ -151,6 +152,8 @@ class Main extends React.Component {
         });
     }
 
+    // Idea 2: suggestions are "calculated" based on the current sentence, which is where my cursor
+    // is at
     currentSentence() {
         const range = this.getCurrentRange();
 
@@ -169,6 +172,7 @@ class Main extends React.Component {
         }
     }
 
+    // Idea 3: Keep track of what I type, so when react re-renders I don't lose it!
     textChange(e) {
         const newText = removeSuggestionsSpan(e.target.value);
         if (newText !== this.props.text) {
@@ -176,6 +180,7 @@ class Main extends React.Component {
         }
     }
 
+    // Idea 4: Somehow, allow me to press <TAB> and accept the suggestion, if there is one.
     acceptOption(e) {
         if (!this.props.suggestion) {
             return;
@@ -191,6 +196,7 @@ class Main extends React.Component {
         document.execCommand('insertText', false, this.props.suggestion)
     }
 
+    // Idea 5: When someone presses Ctrl+V don't fuck everything up....
     pasteAsPlainText(event) {
         event.preventDefault()
 
