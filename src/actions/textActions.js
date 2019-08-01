@@ -1,7 +1,7 @@
-const updateSuggestionAction = (suggestion, suggestionNodePath) => ({
+const updateSuggestionAction = (suggestion) => ({
     type: 'UPDATE_SUGGESTION',
-    suggestion: suggestion,
-    suggestionNodePath: suggestionNodePath,
+    suggestion: suggestion
+    // suggestionNodePath: suggestionNodePath,
 });
 
 const clearSuggestionAction = () => ({
@@ -24,8 +24,8 @@ const abandonSuggestionsAction = (reason) => ({
 
 export const fetchSuggestions = (sentence, suggestionBaseURL, token) =>
     async (dispatch, getState) => {
-        const [text, nodePath] = sentence;
-        const escapedText = encodeURIComponent(text);
+        // const [text, _] = sentence;
+        const escapedText = encodeURIComponent(sentence);
         const escapedToken = encodeURIComponent(token);
         fetch(`${suggestionBaseURL}/suggest?q=${escapedText}&token=${escapedToken}`)
             .catch(e => {
@@ -35,7 +35,7 @@ export const fetchSuggestions = (sentence, suggestionBaseURL, token) =>
             .then(response => response.json())
             .then(responseJson => {
                 if (!responseJson.suggestions || responseJson.suggestions.length <= 0) {
-                    dispatch(abandonSuggestionsAction(`There are no suggestions for ${JSON.stringify(text)}`));
+                    dispatch(abandonSuggestionsAction(`There are no suggestions for ${JSON.stringify(sentence)}`));
                     return;
                 }
                 const { suggestion } = responseJson.suggestions[0];
@@ -47,9 +47,9 @@ export const fetchSuggestions = (sentence, suggestionBaseURL, token) =>
                 //     return;
                 // }
 
-                const newSuggestion = suggestion.slice(text.length);
+                const newSuggestion = suggestion.slice(sentence.length);
 
-                dispatch(updateSuggestionAction(newSuggestion, nodePath));
+                dispatch(updateSuggestionAction(newSuggestion));
             })
     };
 

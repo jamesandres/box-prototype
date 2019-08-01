@@ -37,7 +37,7 @@ function findLastTextNode(root) {
     }
     const reversedNodeList = Array.from(root.childNodes).reverse();
     for (let node of reversedNodeList) {
-        if (node.nodeType == Node.TEXT_NODE) {
+        if (node.nodeType === Node.TEXT_NODE) {
             return node;
         } else if (node.childNodes.length > 0) {
             return findLastTextNode(node);
@@ -62,14 +62,14 @@ function removeSuggestionsSpan(html) {
     return scratch.innerHTML;
 }
 
-function parseAndFindNode(html, nodePath) {
-    let scratch = document.createElement('div');
-    scratch.innerHTML = html;
+// function parseAndFindNode(html, nodePath) {
+//     let scratch = document.createElement('div');
+//     scratch.innerHTML = html;
 
-    const node = findNode(scratch, nodePath);
+//     const node = findNode(scratch, nodePath);
 
-    return [scratch, node];
-}
+//     return [scratch, node];
+// }
 
 function findNode(root, nodePath) {
     // FIXME: Possible for this search to not succeed due to editing races?
@@ -89,7 +89,7 @@ function injectSuggestionIntoDOM(root, suggestion, suggestionNodePath) {
 
     // FIXME: Being lazy and not creating my DOM nodes one bit at a time.
     let scratch = document.createElement('div');
-    scratch.innerHTML = `<span contenteditable="false" class="suggestion">${suggestion}</span>`;
+    scratch.innerHTML = `<span contenteditable="false" class="suggestion" style="user-select: none;">${suggestion}</span>`;
     // insertBefore in order to potentially insert between nodes. For example in "Hi,
     // thanks<br><br>" if the cursor is just after "thanks" but before the breaks it's important
     // the suggestions appear in line with "thanks" and not jumped down two lines.
@@ -103,13 +103,13 @@ class Main extends React.Component {
         this.contentEditableRef = React.createRef();
         this.state = {
             fetchSuggestionsTimer: null,
-            token: "WFuRoLrVV4mr7yanp71cqKngXsu8lAKLPVV+jn9FIRjQHbK6AKrvSXVqLJ8K22X73NmS8M/QJD9BtLeH+jb3t9tTmj+tSDYonHaC1iZzuLuRgnM0dndd5jHlkGCbvAiuJWRti8Z7HIlLwTRNN34KkG7g9Qsk",
+            token: "rLq6wx1FMaEfWeq8XoWd7cKGrCDBQVqqpJL9uzg8O+ioEyKUl84YETP2rPQFT5B0e7Lt1Osod3UqbzE/bjHHHPQ9h1Gko4AwOFqFhgecIZ00ONVi5d6u0DC63nUxZsSCl7oK0/+kxtrRktZJCkuCXUakhdhT",
             suggestionBaseURL: 'http://localhost:8010'
         };
     }
 
     componentDidUpdate() {
-        console.log('Main::cDU');
+        // console.log('Main::cDU');
         if (this.props.suggestion) {
             // Yes, this is a little crazy. But maybe it's crazy awesome? The idea is to entirely
             // hide the suggestion span from the underlying <ContentEditable> component. The
