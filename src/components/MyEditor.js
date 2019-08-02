@@ -1,11 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {Editor, DefaultDraftBlockRenderMap} from 'draft-js';
+import {Editor, DefaultDraftBlockRenderMap, getDefaultKeyBinding} from 'draft-js';
 const Immutable = require('immutable');
 
 
 class SuggestionBlock extends React.Component {
     render() {
+        debugger;
         const style = {
             color: 'grey'
         };
@@ -19,22 +20,18 @@ class SuggestionBlock extends React.Component {
 }
 
 
-const blockRenderMap = Immutable.Map({
-    'suggestion': {
-        element: 'span',
-        editable: false,
-    }
-});
-
-// keep support for other draft default block types and add our myCustomBlock type
-const extendedBlockRenderMap = DefaultDraftBlockRenderMap.merge(blockRenderMap);
+const styleMap = {
+    SUGGESTION: {
+        color: 'grey',
+    },
+};
 
 
 export default class MyEditor extends React.Component {
     constructor(props) {
         super(props);
         this.state = {fetchSuggestionsTimer: null,
-                      token: "yNGHRIWWxYcAk2aCb8+3nyk/h5+XZAyXldIPL9haknQMsmaaIl/AUZFWX5mhW82ikzoaXJ4nv9icP9w5ns0k4bk6R/j6cNHkb5TTQ+kLfnG6DYOtcwdgXVcZh+0b6tb/qfmVeZStsrMHNFhAWjoyLx2fvzgl",
+                      token: 'E5ETWgqwbb7dUxXGnd3XMIaucBLIH3GDWIbEopqnXfNf+2VrQACXD4cQ8z0IXeD8VXopaFzrlE5rumqFUPEWvAfYOwQbSkxfLOxDkTXKQqUTm1IsQk6Ukby4oIEspGyxwvOlVtsaS58iizT7rp6x/4QR+3PE',
                       suggestionBaseURL: 'http://localhost:8010'};
     }
 
@@ -69,7 +66,7 @@ export default class MyEditor extends React.Component {
     }
 
     blockRendererFn(block) {
-        if (block.getType() === 'suggestion') {
+        if (block.getType() === 'atomic') {
             return {
                 component: SuggestionBlock
             };
@@ -77,12 +74,25 @@ export default class MyEditor extends React.Component {
         return null;
     }
 
+    myKeyBindingFn(e) {
+        this.props.clearSuggestion()
+        return getDefaultKeyBinding(e);
+    }
+
+    onTab(e) {
+        if (this.props.acceptSuggestion()) {
+            e.preventDefault();
+        }
+    }
+
     render() {
         return <Editor editorState={this.props.editorState}
                        onChange={(editorState) => this.onChange(editorState)}
                        stripPastedStyles={true}
-                       blockRenderMap={extendedBlockRenderMap}
-                       blockRendererFn={this.blockRendererFn} />;
+                       customStyleMap={styleMap}
+                       blockRendererFn={this.blockRendererFn}
+                       keyBindingFn={(e) => this.myKeyBindingFn(e)}
+                       onTab={(e) => this.onTab(e)}/>;
     }
 }
 

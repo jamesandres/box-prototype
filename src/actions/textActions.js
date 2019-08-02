@@ -1,9 +1,17 @@
-const clearSuggestionAction = () => ({
-    type: 'CLEAR_SUGGESTION'
+import {hasSuggestion} from '../selectors/writing';
+
+
+const editorChangedAction = (editorState) => ({
+    type: 'EDITOR_CHANGED',
+    editorState
 });
 
-export const clearSuggestion = () =>
-    (dispatch, getState) => dispatch(clearSuggestionAction());
+export const editorChanged = (editorState) =>
+    (dispatch, getState) => {
+        dispatch(editorChangedAction(editorState))
+    };
+
+
 
 
 const fetchSuggestionsErrorAction = (error) => ({
@@ -52,12 +60,31 @@ export const fetchSuggestions = (text, suggestionBaseURL, token) =>
     };
 
 
-const editorChangedAction = (editorState) => ({
-    type: 'EDITOR_CHANGED',
-    editorState
+
+
+const clearSuggestionAction = () => ({
+    type: 'CLEAR_SUGGESTION'
 });
 
-export const editorChanged = (editorState) =>
+export const clearSuggestion = () =>
+    (dispatch, getState) => dispatch(clearSuggestionAction());
+
+
+
+
+const acceptSuggestionAction = () => ({
+    type: 'ACCEPT_SUGGESTION'
+});
+
+export const acceptSuggestion = () =>
     (dispatch, getState) => {
-        dispatch(editorChangedAction(editorState))
+        // FIXME: So sad, the decoupled nature of actions means locating the suggestion is
+        //        done twice here. Once in `hasSuggestion` and again in
+        //        `../selectors/writing.js::acceptSuggestion`
+        if (hasSuggestion(getState().writing.editorState)) {
+            dispatch(acceptSuggestionAction())
+            return true;
+        } else {
+            return false;
+        }
     };

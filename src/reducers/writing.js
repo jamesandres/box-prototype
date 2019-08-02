@@ -1,6 +1,6 @@
 import {EditorState} from 'draft-js';
 
-import {injectWithSuggestion, clearSuggestion} from '../selectors/writing.js';
+import {injectWithSuggestion, clearSuggestion, acceptSuggestion} from '../selectors/writing.js';
 
 
 const initialState = {
@@ -34,6 +34,13 @@ const writing = (state = initialState, action) => {
                 ...state,
                 // NOTE: Ditto to above, this pattern has legs I think!
                 editorState: clearSuggestion(state.editorState)
+            };
+        }
+        case 'ACCEPT_SUGGESTION': {
+            return {
+                ...state,
+                // NOTE: Ditto to above, this pattern has legs I think!
+                editorState: acceptSuggestion(state.editorState)
             };
         }
         default: {
