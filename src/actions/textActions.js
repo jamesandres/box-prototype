@@ -1,9 +1,3 @@
-const updateSuggestionAction = (suggestion, suggestionNodePath) => ({
-    type: 'UPDATE_SUGGESTION',
-    suggestion: suggestion,
-    suggestionNodePath: suggestionNodePath,
-});
-
 const clearSuggestionAction = () => ({
     type: 'CLEAR_SUGGESTION'
 });
@@ -22,9 +16,13 @@ const abandonSuggestionsAction = (reason) => ({
     reason: reason
 });
 
-export const fetchSuggestions = (sentence, suggestionBaseURL, token) =>
+const updateSuggestionAction = (suggestion) => ({
+    type: 'UPDATE_SUGGESTION',
+    suggestion: suggestion
+});
+
+export const fetchSuggestions = (text, suggestionBaseURL, token) =>
     async (dispatch, getState) => {
-        const [text, nodePath] = sentence;
         const escapedText = encodeURIComponent(text);
         const escapedToken = encodeURIComponent(token);
         fetch(`${suggestionBaseURL}/suggest?q=${escapedText}&token=${escapedToken}`)
@@ -49,17 +47,17 @@ export const fetchSuggestions = (sentence, suggestionBaseURL, token) =>
 
                 const newSuggestion = suggestion.slice(text.length);
 
-                dispatch(updateSuggestionAction(newSuggestion, nodePath));
+                dispatch(updateSuggestionAction(newSuggestion, getState().editorState));
             })
     };
 
 
-const updateTextAction = (text) => ({
-    type: 'UPDATE_TEXT',
-    text
+const editorChangedAction = (editorState) => ({
+    type: 'EDITOR_CHANGED',
+    editorState
 });
 
-export const updateText = (text) =>
+export const editorChanged = (editorState) =>
     (dispatch, getState) => {
-        dispatch(updateTextAction(text));
+        dispatch(editorChangedAction(editorState))
     };

@@ -1,4 +1,10 @@
+import {EditorState} from 'draft-js';
+
+import {injectWithSuggestion, clearSuggestion} from '../selectors/writing.js';
+
+
 const initialState = {
+    editorState: EditorState.createEmpty(),
     text: '',
     suggestion: '',
     suggestionNodePath: '0',
@@ -8,24 +14,22 @@ const writing = (state = initialState, action) => {
     // For debugging in IE *shudder*
     (window.actions ? window.actions : window.actions = []).push([state, action]);
     switch (action.type) {
-        case 'UPDATE_TEXT': {
+        case 'EDITOR_CHANGED': {
             return {
                 ...state,
-                text: action.text
+                editorState: action.editorState
             };
         }
         case 'UPDATE_SUGGESTION': {
             return {
                 ...state,
-                suggestion: action.suggestion,
-                suggestionNodePath: action.suggestionNodePath
+                editorState: injectWithSuggestion(state.editorState, action.suggestion)
             };
         }
         case 'CLEAR_SUGGESTION': {
             return {
                 ...state,
-                suggestion: initialState.suggestion,
-                suggestionNodePath: initialState.suggestionNodePath
+                editorState: clearSuggestion(state.editorState)
             };
         }
         default: {
