@@ -11,3 +11,17 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
 }
+
+.inlineStyleClass {
+  display: inline;
+  margin: 0;
+}
+
+.inlineStyleClass > .public-DraftStyleDefault-block {
+  display: inline;
+}
+
+.SuggestionBlock {
+  display: inline;
+  color: grey;
+}
