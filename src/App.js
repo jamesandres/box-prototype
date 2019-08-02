@@ -1,5 +1,5 @@
 import React from 'react';
-import Main from './containers/Main';
+import AutoComplete from './containers/AutoComplete';
 import MyEditor from './containers/MyEditor';
 import './App.css';
 
@@ -7,7 +7,7 @@ import './App.css';
 function App() {
   return (
     <div className="App">
-      {/* <Main /> */}
+      <AutoComplete />
       <MyEditor />
     </div>
   );

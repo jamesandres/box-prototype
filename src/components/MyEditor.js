@@ -1,32 +1,69 @@
 import React from 'react';
 import Immutable from 'immutable';
-import {Editor, EditorState, getDefaultKeyBinding, Modifier, DefaultDraftBlockRenderMap, ContentBlock, genKey, ContentState} from 'draft-js';
+import {SelectionState, Editor, EditorState, getDefaultKeyBinding, Modifier, DefaultDraftBlockRenderMap, ContentBlock, genKey, ContentState, AtomicBlockUtils} from 'draft-js';
+
 
 class SuggestionBlock extends React.Component {
   constructor(props) {
     super(props);
   }
 
-
   render() {
     return (
-      <div className='SuggestionBlock'>
+      <div className='SuggestionBlock' onClick={this.props.blockProps.onRemove}>
         {"HeLLO"}
       </div>
     );
   }
 }
 
-const blockRenderMap = Immutable.Map({
-  'SuggestionBlock': {
-    // element is used during paste or html conversion to auto match your component;
-    // it is also retained as part of this.props.children and not stripped out
-    element: 'div',
-    wrapper: <SuggestionBlock />,
-  }
-});
+function insertSuggestionBlock(editorState) {
+  const contentState = editorState.getCurrentContent();
+  const contentStateWithEntity = contentState.createEntity(
+    'SUGGESTION',
+    'IMMUTABLE',
+  );
+  const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
+  const newEditorState = EditorState.set(
+    editorState,
+    {currentContent: contentStateWithEntity},
+  );
+  return AtomicBlockUtils.insertAtomicBlock(newEditorState, entityKey, ' ');
+}
 
-const extendedBlockRenderMap = DefaultDraftBlockRenderMap.merge(blockRenderMap);
+function removeSelectionBlock(editorState, blockKey) {
+  var content = editorState.getCurrentContent();
+  var block = content.getBlockForKey(blockKey);
+
+  var targetRange = new SelectionState({
+    anchorKey: blockKey,
+    anchorOffset: 0,
+    focusKey: blockKey,
+    focusOffset: block.getLength(),
+  });
+
+  var withoutTeX = Modifier.removeRange(content, targetRange, 'backward');
+  var resetBlock = Modifier.setBlockType(
+    withoutTeX,
+    withoutTeX.getSelectionAfter(),
+    'unstyled',
+  );
+
+  var newState = EditorState.push(editorState, resetBlock, 'remove-range');
+  return EditorState.forceSelection(newState, resetBlock.getSelectionAfter());
+}
+
+function blockRenderMap(block) {
+  if (block.getType() === 'atomic') {
+    return {
+      component: SuggestionBlock,
+      props: {
+        onRemove: (blockKey) => {removeSelectionBlock(blockKey)},
+      },
+    };
+  }
+  return null;
+};
 
 export default class MyEditor extends React.Component {
   constructor(props) {
@@ -87,23 +124,27 @@ export default class MyEditor extends React.Component {
     this.setState({editorState: newEditorStateWithNewBlock});
   }
 
+
+
   insertSuggestion () {
-    // Broken Custom Block
+    // // Broken Custom Block
     // const suggestionContentBlock = new ContentBlock({
     //   key: genKey(),
     //   type: 'SuggestionBlock'
     // })
 
+    // const contentState = this.state.editorState.getCurrentContent();
     // const newBlockMap = contentState.getBlockMap().set(suggestionContentBlock.key, suggestionContentBlock);
     // const newEditorStateWithCharacters = EditorState.push(this.state.editorState, ContentState.createFromBlockArray(newBlockMap.toArray()).set('selectionBefore', contentState.getSelectionBefore())
     // .set('selectionAfter', contentState.getSelectionAfter()));
 
-    const contentState = this.state.editorState.getCurrentContent();
-    const selectionState = this.state.editorState.getSelection();
-    let newContentState = Modifier.insertText(contentState, selectionState, this.props.suggestion);
-    const newEditorStateWithCharacters = EditorState.push(this.state.editorState, newContentState, 'insert-characters');
+    // // const selectionState = this.state.editorState.getSelection();
+    // // let newContentState = Modifier.insertText(contentState, selectionState, this.props.suggestion);
+    // // const newEditorStateWithCharacters = EditorState.push(this.state.editorState, newContentState, 'insert-characters');
   
-    this.setState({editorState: newEditorStateWithCharacters});
+    // this.setState({editorState: newEditorStateWithCharacters});
+    const newEditorStateWithChracters = insertSuggestionBlock(this.state.editorState);
+    this.setState({editorState: newEditorStateWithChracters});
   }
 
   myBlockStyleFn(contentBlock) {
@@ -162,7 +203,7 @@ startFetchSuggestionsTimer() {
           onTab={this.onTab}
           ref={this.setDomEditorRef}
           blockStyleFn={this.myBlockStyleFn}
-          blockRenderMap={extendedBlockRenderMap}/>
+          blockRendererFn={blockRenderMap}/>
 
     );
   }

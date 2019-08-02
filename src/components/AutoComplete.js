@@ -1,5 +1,9 @@
 import React from 'react';
-import {Editor, EditorState, getDefaultKeyBinding, Modifier } from 'draft-js';
+import {Editor, EditorState } from 'draft-js';
+
+import SuggestionBlock from './SuggestionBlock';
+import insertSuggestionBlock from '../suggestionUtils/insertSuggestionBlock';
+import removeSuggestionBlock from '../suggestionUtils/removeSuggestionBlock';
 
 
 export default class AutoComplete extends React.Component {
@@ -49,6 +53,42 @@ export default class AutoComplete extends React.Component {
                 fetchSuggestionsTimer: this.fetchSuggestionsTimer()
             });
         }
+
+        this.insertSuggestion = () => {
+            const newEditorStateWithChracters = insertSuggestionBlock(this.state.editorState);
+            this.setState({editorState: newEditorStateWithChracters});
+        }
+
+        this.removeSuggestion = (blockKey) => {
+            this.setState({editorState: removeSuggestionBlock(this.state.editorState, blockKey)});
+        }
+
+        this.blockRenderFn = (block) => {
+            if (block.getType() === 'atomic') {
+              return {
+                component: SuggestionBlock,
+                props: {
+                  suggestion: this.props.suggestion,
+                  onRemove: () => {this.removeSuggestion(block.getKey())}
+                },
+              };
+            }
+            return null;
+        };
+
+        this.myBlockStyleFn = (contentBlock) => {
+            const type = contentBlock.getType();
+            if (type === 'atomic') {
+              return 'inlineStyleClass';
+            }
+            if (type === 'unstyled') {
+                return 'inlineStyleClass';
+            }
+          }
+
+        this.onTab = () => {
+            this.insertSuggestion();
+        }
     }
     render() {
         return (
@@ -56,7 +96,10 @@ export default class AutoComplete extends React.Component {
                 editorState={this.state.editorState}
                 onChange={this.onChange}
                 onBlur={() => this.domEditor.focus()}
-                ref={this.setDomEditorRef}/>
+                ref={this.setDomEditorRef}
+                onTab={this.onTab}
+                blockRendererFn={this.blockRenderFn}
+                blockStyleFn={this.myBlockStyleFn}/>
         );
     }
 }

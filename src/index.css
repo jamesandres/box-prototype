@@ -12,11 +12,16 @@ code {
     monospace;
 }
 
-.superFancyBlockquote {
-  color: red;
+.inlineStyleClass {
+  display: inline;
+  margin: 0;
+}
+
+.inlineStyleClass > .public-DraftStyleDefault-block {
   display: inline;
 }
 
-.public-DraftStyleDefault-block {
-	display:inline;
+.SuggestionBlock {
+  display: inline;
+  color: grey;
 }
