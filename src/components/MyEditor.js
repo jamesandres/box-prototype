@@ -1,6 +1,33 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {Editor} from 'draft-js';
+import {Editor, DefaultDraftBlockRenderMap} from 'draft-js';
+const Immutable = require('immutable');
+
+
+class SuggestionBlock extends React.Component {
+    render() {
+        const style = {
+            color: 'grey'
+        };
+        return (
+            <span className='SuggestionBlock'
+                  style={style}
+                  contentEditable={false}
+                  readOnly>{this.props.block.text}</span>
+        );
+    }
+}
+
+
+const blockRenderMap = Immutable.Map({
+    'suggestion': {
+        element: 'span',
+        editable: false,
+    }
+});
+
+// keep support for other draft default block types and add our myCustomBlock type
+const extendedBlockRenderMap = DefaultDraftBlockRenderMap.merge(blockRenderMap);
 
 
 export default class MyEditor extends React.Component {
@@ -41,10 +68,21 @@ export default class MyEditor extends React.Component {
         return currentContentBlock.getText();
     }
 
+    blockRendererFn(block) {
+        if (block.getType() === 'suggestion') {
+            return {
+                component: SuggestionBlock
+            };
+        }
+        return null;
+    }
+
     render() {
         return <Editor editorState={this.props.editorState}
                        onChange={(editorState) => this.onChange(editorState)}
-                       stripPastedStyles={true} />;
+                       stripPastedStyles={true}
+                       blockRenderMap={extendedBlockRenderMap}
+                       blockRendererFn={this.blockRendererFn} />;
     }
 }
 

@@ -23,12 +23,16 @@ const writing = (state = initialState, action) => {
         case 'UPDATE_SUGGESTION': {
             return {
                 ...state,
+                // NOTE: This is fantastic, we can treat suggestion injection as a state change
+                //       operation which means it can live in reducer land. This means there
+                //       is no reason to expose the suggestion as a prop in the render layer!
                 editorState: injectWithSuggestion(state.editorState, action.suggestion)
             };
         }
         case 'CLEAR_SUGGESTION': {
             return {
                 ...state,
+                // NOTE: Ditto to above, this pattern has legs I think!
                 editorState: clearSuggestion(state.editorState)
             };
         }
